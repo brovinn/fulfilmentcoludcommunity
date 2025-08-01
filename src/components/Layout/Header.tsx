@@ -1,4 +1,4 @@
-import { Settings, User } from "lucide-react";
+import { Settings, User, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -15,13 +15,29 @@ const Header = () => {
         {/* Logo */}
         <div className="flex items-center space-x-2">
           <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-xl">S</span>
+            <span className="text-primary-foreground font-bold text-xl">C</span>
           </div>
-          <h1 className="hidden sm:block text-xl font-bold text-primary">Social</h1>
+          <h1 className="hidden sm:block text-xl font-bold text-primary">Community Chat</h1>
         </div>
 
-        {/* Account Icon */}
-        <div className="flex items-center">
+        {/* Upload and Account Icons */}
+        <div className="flex items-center gap-2">
+          {/* Upload Button */}
+          <Button variant="ghost" size="icon" onClick={() => document.getElementById('fileUpload')?.click()}>
+            <Upload className="h-5 w-5" />
+          </Button>
+          <input
+            id="fileUpload"
+            type="file"
+            accept="*/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const files = Array.from(e.target.files || []);
+              console.log('Files selected:', files);
+              // Handle file upload logic here
+            }}
+          />
 
           {/* Profile Dropdown */}
           <DropdownMenu>
