@@ -22,7 +22,7 @@ interface Post {
 }
 
 const Feed = () => {
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [posts, setPosts] = useState<Post[]>([
     {
       id: "1",
@@ -116,31 +116,6 @@ const Feed = () => {
 
   return (
     <div className="space-y-6">
-      <CreatePost onPostCreate={handlePostCreate} />
-      
-      {/* View Toggle */}
-      <div className="flex justify-end">
-        <div className="flex bg-secondary rounded-lg p-1">
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('list')}
-            className="h-8"
-          >
-            <List className="h-4 w-4 mr-1" />
-            List
-          </Button>
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('grid')}
-            className="h-8"
-          >
-            <Grid className="h-4 w-4 mr-1" />
-            Grid
-          </Button>
-        </div>
-      </div>
       
       {/* Content based on view mode */}
       {viewMode === 'list' ? (
