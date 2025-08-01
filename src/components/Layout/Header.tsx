@@ -1,4 +1,4 @@
-import { Settings, User, Upload } from "lucide-react";
+import { Settings, User, Upload, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -6,9 +6,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
 
 const Header = () => {
+  const { user, signOut } = useAuth();
   return (
     <header className="sticky top-0 z-50 bg-nav-bg border-b border-border shadow-sm">
       <div className="flex items-center justify-between px-4 py-2 max-w-7xl mx-auto">
@@ -44,8 +47,10 @@ const Header = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder.svg" />
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarImage src={user?.user_metadata?.avatar_url || "/placeholder.svg"} />
+                  <AvatarFallback>
+                    {user?.user_metadata?.display_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
@@ -57,6 +62,11 @@ const Header = () => {
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
