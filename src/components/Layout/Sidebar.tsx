@@ -1,10 +1,15 @@
 import { Home, Users, Bookmark, Clock, MessageSquare, Calendar, Star, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useState } from "react";
+import ChatWindow from "@/components/Chat/ChatWindow";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 const Sidebar = () => {
+  const [activeItem, setActiveItem] = useState("Home");
+  
   const menuItems = [
-    { icon: Home, label: "Home", active: true },
+    { icon: Home, label: "Home", badge: undefined },
     { icon: Users, label: "Friends", badge: "12" },
     { icon: MessageSquare, label: "Messages", badge: "3" },
     { icon: Bookmark, label: "Saved" },
@@ -38,19 +43,43 @@ const Sidebar = () => {
         {/* Navigation Menu */}
         <nav className="space-y-1">
           {menuItems.map((item) => (
-            <Button
-              key={item.label}
-              variant={item.active ? "secondary" : "ghost"}
-              className="w-full justify-start h-12 px-3 relative"
-            >
-              <item.icon className="mr-3 h-5 w-5" />
-              <span className="flex-1 text-left">{item.label}</span>
-              {item.badge && (
-                <span className="bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {item.badge}
-                </span>
-              )}
-            </Button>
+            item.label === "Messages" ? (
+              <Dialog key={item.label}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant={activeItem === item.label ? "secondary" : "ghost"}
+                    className="w-full justify-start h-12 px-3 relative"
+                    onClick={() => setActiveItem(item.label)}
+                  >
+                    <item.icon className="mr-3 h-5 w-5" />
+                    <span className="flex-1 text-left">{item.label}</span>
+                    {item.badge && (
+                      <span className="bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {item.badge}
+                      </span>
+                    )}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl p-0">
+                  <ChatWindow />
+                </DialogContent>
+              </Dialog>
+            ) : (
+              <Button
+                key={item.label}
+                variant={activeItem === item.label ? "secondary" : "ghost"}
+                className="w-full justify-start h-12 px-3 relative"
+                onClick={() => setActiveItem(item.label)}
+              >
+                <item.icon className="mr-3 h-5 w-5" />
+                <span className="flex-1 text-left">{item.label}</span>
+                {item.badge && (
+                  <span className="bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {item.badge}
+                  </span>
+                )}
+              </Button>
+            )
           ))}
         </nav>
 

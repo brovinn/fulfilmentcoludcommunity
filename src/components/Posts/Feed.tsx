@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { Grid, List } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import CreatePost from "./CreatePost";
 import PostCard from "./PostCard";
+import InstagramPreview from "./InstagramPreview";
 
 interface Post {
   id: string;
@@ -19,6 +22,7 @@ interface Post {
 }
 
 const Feed = () => {
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [posts, setPosts] = useState<Post[]>([
     {
       id: "1",
@@ -104,20 +108,55 @@ const Feed = () => {
     ));
   };
 
+  const handlePostClick = (postId: string) => {
+    // Switch to list view and scroll to post
+    setViewMode('list');
+    // In a real app, you might scroll to the specific post or open a modal
+  };
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="space-y-6">
       <CreatePost onPostCreate={handlePostCreate} />
       
-      <div className="space-y-6">
-        {posts.map((post) => (
-          <PostCard
-            key={post.id}
-            post={post}
-            onLike={handleLike}
-            onComment={handleComment}
-          />
-        ))}
+      {/* View Toggle */}
+      <div className="flex justify-end">
+        <div className="flex bg-secondary rounded-lg p-1">
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+            className="h-8"
+          >
+            <List className="h-4 w-4 mr-1" />
+            List
+          </Button>
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+            className="h-8"
+          >
+            <Grid className="h-4 w-4 mr-1" />
+            Grid
+          </Button>
+        </div>
       </div>
+      
+      {/* Content based on view mode */}
+      {viewMode === 'list' ? (
+        <div className="space-y-6">
+          {posts.map((post) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              onLike={handleLike}
+              onComment={handleComment}
+            />
+          ))}
+        </div>
+      ) : (
+        <InstagramPreview posts={posts} onPostClick={handlePostClick} />
+      )}
     </div>
   );
 };
