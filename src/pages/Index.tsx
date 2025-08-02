@@ -1,25 +1,793 @@
-import Header from "@/components/Layout/Header";
-import Sidebar from "@/components/Layout/Sidebar";
-import RightSidebar from "@/components/Layout/RightSidebar";
-import Feed from "@/components/Posts/Feed";
+import { useState, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { ContentUpload } from "@/components/ContentUpload";
+import { DonationForm } from "@/components/DonationForm";
+import { CommunityChat } from "@/components/CommunityChat";
+import Auth from "./Auth";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Download, Heart, MessageCircle, Clock, Calendar, Users, Upload, Plus, MoreHorizontal } from "lucide-react";
+
+interface ContentItem {
+  id: string;
+  title: string;
+  description: string | null;
+  content_text: string | null;
+  image_url: string | null;
+  created_at: string;
+  tab_type: string;
+  user_id: string;
+  profiles?: {
+    display_name: string;
+    avatar_url: string | null;
+  };
+}
 
 const Index = () => {
-  return (
-    <div className="min-h-screen bg-feed-bg">
-      <Header />
+  const [showAuth, setShowAuth] = useState(false);
+  const [activeTab, setActiveTab] = useState("home");
+  const [content, setContent] = useState<{ [key: string]: ContentItem[] }>({
+    home: [],
+    projects: [],
+    updates: [],
+    history: []
+  });
+  const [likes, setLikes] = useState<{ [key: string]: number }>({});
+  const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadContent();
+    if (user) {
+      loadLikes();
+    }
+  }, [user]);
+
+  const loadContent = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('content')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const groupedContent = data.reduce((acc, item) => {
+        if (!acc[item.tab_type]) acc[item.tab_type] = [];
+        acc[item.tab_type].push(item);
+        return acc;
+      }, {} as { [key: string]: ContentItem[] });
+
+      setContent(groupedContent);
+    } catch (error) {
+      console.error('Error loading content:', error);
+    }
+  };
+
+  const loadLikes = async () => {
+    try {
+      // Get all likes count
+      const { data: likesData } = await supabase
+        .from('content')
+        .select('id, content_likes:content_likes(count)')
+        .not('content_likes', 'is', null);
+
+      // Get user's likes
+      const { data: userLikesData } = await supabase
+        .from('content_likes')
+        .select('content_id')
+        .eq('user_id', user?.id);
+
+      if (likesData) {
+        const likesCount = likesData.reduce((acc, item) => {
+          acc[item.id] = item.content_likes?.[0]?.count || 0;
+          return acc;
+        }, {} as { [key: string]: number });
+        setLikes(likesCount);
+      }
+
+      if (userLikesData) {
+        setUserLikes(new Set(userLikesData.map(like => like.content_id)));
+      }
+    } catch (error) {
+      console.error('Error loading likes:', error);
+    }
+  };
+
+  const toggleLike = async (contentId: string) => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to like posts",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const isLiked = userLikes.has(contentId);
       
-      <div className="flex">
-        <Sidebar />
+      if (isLiked) {
+        await supabase
+          .from('content_likes')
+          .delete()
+          .eq('content_id', contentId)
+          .eq('user_id', user.id);
         
-        {/* Main Content */}
-        <main className="flex-1 lg:ml-80 xl:mr-80 px-4 py-6">
-          <div className="max-w-2xl mx-auto">
-            <Feed />
+        setUserLikes(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(contentId);
+          return newSet;
+        });
+        setLikes(prev => ({ ...prev, [contentId]: (prev[contentId] || 1) - 1 }));
+      } else {
+        await supabase
+          .from('content_likes')
+          .insert({ content_id: contentId, user_id: user.id });
+        
+        setUserLikes(prev => new Set([...prev, contentId]));
+        setLikes(prev => ({ ...prev, [contentId]: (prev[contentId] || 0) + 1 }));
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update like",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadFile = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      toast({
+        title: "Download started",
+        description: `Downloading ${filename}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "Failed to download file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getFileExtension = (url: string) => {
+    return url.split('.').pop()?.toLowerCase() || '';
+  };
+
+  const getFileName = (title: string, url: string) => {
+    const extension = getFileExtension(url);
+    return `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${extension}`;
+  };
+
+  const ContentList = ({ tabType }: { tabType: string }) => (
+    <div className="space-y-4">
+      {content[tabType]?.map((item) => (
+        <Card key={item.id}>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              {item.title}
+              {item.image_url && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadFile(item.image_url!, getFileName(item.title, item.image_url!))}
+                  className="ml-2"
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Download
+                </Button>
+              )}
+            </CardTitle>
+            {item.description && <CardDescription>{item.description}</CardDescription>}
+          </CardHeader>
+          <CardContent>
+            {item.content_text && <p className="mb-4 whitespace-pre-wrap">{item.content_text}</p>}
+            {item.image_url && (user || !item.image_url.includes('private')) && (
+              <div className="mb-4">
+                {/* Handle different file types */}
+                {item.image_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                  <div className="relative">
+                    <img 
+                      src={item.image_url} 
+                      alt={item.title}
+                      className="w-full max-w-md rounded-lg border"
+                      onError={(e) => {
+                        console.error('Image failed to load:', item.image_url);
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                ) : item.image_url.match(/\.(mp4|webm|ogg)$/i) ? (
+                  <div className="relative">
+                    <video 
+                      controls 
+                      className="w-full max-w-md rounded-lg border"
+                      onError={(e) => {
+                        console.error('Video failed to load:', item.image_url);
+                      }}
+                    >
+                      <source src={item.image_url} />
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                ) : item.image_url.match(/\.(mp3|wav|ogg|m4a)$/i) ? (
+                  <div className="relative">
+                    {/* Generate album cover for audio files */}
+                    <div className="w-full max-w-md bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 rounded-lg p-6 mb-4">
+                      <div className="text-center text-white">
+                        <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center">
+                          <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M18 3a1 1 0 00-1.196-.98L7 3.75V13.5a2.5 2.5 0 11-2-2.45V2a1 1 0 011.196-.98L17 2.75A1 1 0 0118 3.75v7.5a2.5 2.5 0 11-2-2.45V3z"/>
+                          </svg>
+                        </div>
+                        <h3 className="font-bold text-lg mb-1">{item.title}</h3>
+                        <p className="text-sm opacity-80">{item.description || "Audio Track"}</p>
+                        <div className="mt-4 text-xs opacity-60">
+                          {new Date(item.created_at).getFullYear()} • Fulfilment Centre
+                        </div>
+                      </div>
+                    </div>
+                    <audio 
+                      controls 
+                      className="w-full max-w-md"
+                      onError={(e) => {
+                        console.error('Audio failed to load:', item.image_url);
+                      }}
+                    >
+                      <source src={item.image_url} />
+                      Your browser does not support the audio tag.
+                    </audio>
+                  </div>
+                ) : (
+                  <div className="p-4 border rounded-lg bg-muted">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">Uploaded file:</p>
+                        <p className="font-medium">{item.title}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadFile(item.image_url!, getFileName(item.title, item.image_url!))}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                {new Date(item.created_at).toLocaleDateString()} at {new Date(item.created_at).toLocaleTimeString()}
+              </p>
+              {user && (
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={async () => {
+                      if (confirm('Are you sure you want to delete this content?')) {
+                        try {
+                          const { error } = await supabase
+                            .from('content')
+                            .delete()
+                            .eq('id', item.id);
+                          
+                          if (error) throw error;
+                          
+                          toast({
+                            title: "Content deleted",
+                            description: "Content has been removed successfully",
+                          });
+                          
+                          loadContent();
+                        } catch (error) {
+                          toast({
+                            title: "Delete failed",
+                            description: "Failed to delete content",
+                            variant: "destructive",
+                          });
+                        }
+                      }
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )) || (
+        <div className="text-center py-8 text-muted-foreground">
+          No content available yet. Be the first to upload!
+        </div>
+      )}
+    </div>
+  );
+
+  // Show auth page if requested
+  if (showAuth) {
+    return <Auth />;
+  }
+
+  return (
+    <div className="min-h-screen bg-background" style={{
+      backgroundImage: "url('/lovable-uploads/2a270226-863c-469b-8205-7199714e58ce.png')",
+      backgroundSize: "200px",
+      backgroundRepeat: "no-repeat",
+      backgroundPosition: "top right",
+      backgroundAttachment: "fixed",
+      backgroundColor: "rgba(255, 255, 255, 0.95)",
+      backgroundBlendMode: "overlay"
+    }}>
+      {/* Header */}
+      <header className="border-b bg-card/95 backdrop-blur-sm shadow-sm">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <img 
+                src="/lovable-uploads/2a270226-863c-469b-8205-7199714e58ce.png" 
+                alt="Fulfilment Centre Logo" 
+                className="h-12 w-auto"
+              />
+              <div>
+                <h1 className="text-3xl font-bold text-primary">Fulfilment Centre</h1>
+                <p className="text-muted-foreground mt-1">Building community, creating impact</p>
+              </div>
+            </div>
+            
+            {/* Auth controls */}
+            <div className="flex items-center gap-2">
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground">
+                    Welcome back, {user.email}
+                  </span>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => supabase.auth.signOut()}
+                  >
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={() => setShowAuth(true)}>
+                  Sign In
+                </Button>
+              )}
+            </div>
           </div>
-        </main>
-        
-        <RightSidebar />
-      </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="home">Home</TabsTrigger>
+            <TabsTrigger value="projects">Projects</TabsTrigger>
+            <TabsTrigger value="updates">Updates</TabsTrigger>
+            <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="contribute">Contribute</TabsTrigger>
+          </TabsList>
+
+          {/* Home Tab */}
+          <TabsContent value="home" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">Welcome to Fulfilment Centre</h2>
+              {user ? (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Upload Content
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <ContentUpload tabType="home" onUploadSuccess={loadContent} />
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <Button onClick={() => setShowAuth(true)}>
+                  Sign In to Upload
+                </Button>
+              )}
+            </div>
+            
+            {!user && (
+              <Card className="bg-muted/50">
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <h3 className="text-lg font-semibold mb-2">Join Our Community</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Sign in to upload content, participate in discussions, and connect with the community
+                    </p>
+                    <Button onClick={() => setShowAuth(true)}>
+                      Get Started
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Preview sections for all content */}
+            <div className="grid gap-6">
+              {/* Latest Projects Preview */}
+              {content.projects?.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      Latest Projects
+                      <Button variant="outline" size="sm" onClick={() => setActiveTab("projects")}>
+                        View All
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {content.projects.slice(0, 2).map((item) => (
+                        <Card key={item.id} className="border-muted">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">{item.title}</CardTitle>
+                            {item.description && <CardDescription className="text-xs">{item.description}</CardDescription>}
+                          </CardHeader>
+                          <CardContent className="pt-2">
+                            {item.content_text && <p className="text-sm line-clamp-2 mb-2">{item.content_text}</p>}
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(item.created_at).toLocaleDateString()}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Latest Updates Preview */}
+              {content.updates?.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      Latest Updates
+                      <Button variant="outline" size="sm" onClick={() => setActiveTab("updates")}>
+                        View All
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {content.updates.slice(0, 2).map((item) => (
+                        <Card key={item.id} className="border-muted">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">{item.title}</CardTitle>
+                            {item.description && <CardDescription className="text-xs">{item.description}</CardDescription>}
+                          </CardHeader>
+                          <CardContent className="pt-2">
+                            {item.content_text && <p className="text-sm line-clamp-2 mb-2">{item.content_text}</p>}
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(item.created_at).toLocaleDateString()}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* History Preview */}
+              {content.history?.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      Community History
+                      <Button variant="outline" size="sm" onClick={() => setActiveTab("history")}>
+                        View All
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {content.history.slice(0, 2).map((item) => (
+                        <Card key={item.id} className="border-muted">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">{item.title}</CardTitle>
+                            {item.description && <CardDescription className="text-xs">{item.description}</CardDescription>}
+                          </CardHeader>
+                          <CardContent className="pt-2">
+                            {item.content_text && <p className="text-sm line-clamp-2 mb-2">{item.content_text}</p>}
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(item.created_at).toLocaleDateString()}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Home Content */}
+              <ContentList tabType="home" />
+            </div>
+          </TabsContent>
+
+          {/* Projects Tab */}
+          <TabsContent value="projects" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">Community Projects</h2>
+              {user ? (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Project
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <ContentUpload tabType="projects" onUploadSuccess={loadContent} />
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <Button onClick={() => setShowAuth(true)}>
+                  Sign In to Post
+                </Button>
+              )}
+            </div>
+            <ContentList tabType="projects" />
+          </TabsContent>
+
+          {/* Updates Tab */}
+          <TabsContent value="updates" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">Latest Updates</h2>
+              {user ? (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Post Update
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <ContentUpload tabType="updates" onUploadSuccess={loadContent} />
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <Button onClick={() => setShowAuth(true)}>
+                  Sign In to Post
+                </Button>
+              )}
+            </div>
+            <ContentList tabType="updates" />
+          </TabsContent>
+
+          {/* Posts Tab */}
+          <TabsContent value="posts" className="space-y-6">
+            {user ? (
+              <CommunityChat />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5" />
+                    Community Chat
+                  </CardTitle>
+                  <CardDescription>Connect with fellow community members</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground mb-4">
+                      Join the conversation! Sign in to participate in community chat.
+                    </p>
+                    <Button onClick={() => setShowAuth(true)}>
+                      Sign In to Chat
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* History Tab */}
+          <TabsContent value="history" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">Community History</h2>
+              {user ? (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add History
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <ContentUpload tabType="history" onUploadSuccess={loadContent} />
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <Button onClick={() => setShowAuth(true)}>
+                  Sign In to Post
+                </Button>
+              )}
+            </div>
+            <ContentList tabType="history" />
+          </TabsContent>
+
+          {/* Contribute Tab */}
+          <TabsContent value="contribute" className="space-y-6">
+            {user ? (
+              <div className="space-y-6">
+                {/* Security Notice */}
+                <Card className="border-amber-200 bg-amber-50/50">
+                  <CardHeader>
+                    <CardTitle className="text-amber-800">Secure Donation Portal</CardTitle>
+                    <CardDescription className="text-amber-700">
+                      All transactions are encrypted and verified. Your financial information is protected.
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+
+                {/* Banking Requirements */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Banking & Security Requirements</CardTitle>
+                    <CardDescription>
+                      Please review these requirements before proceeding with your donation
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <h4 className="font-semibold mb-2">Required Information</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Valid government-issued ID</li>
+                          <li>• Bank account verification</li>
+                          <li>• Billing address confirmation</li>
+                          <li>• Phone number verification</li>
+                          <li>• Email address confirmation</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold mb-2">Security Measures</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• SSL/TLS encryption (256-bit)</li>
+                          <li>• PCI DSS compliance</li>
+                          <li>• Two-factor authentication</li>
+                          <li>• Fraud detection monitoring</li>
+                          <li>• Regular security audits</li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <div className="border-t pt-4">
+                      <h4 className="font-semibold mb-2">Anti-Money Laundering (AML) Compliance</h4>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        In accordance with financial regulations, we are required to:
+                      </p>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Verify donor identity for transactions over $100</li>
+                        <li>• Report suspicious transactions to relevant authorities</li>
+                        <li>• Maintain transaction records for regulatory purposes</li>
+                        <li>• Perform enhanced due diligence for high-value donations</li>
+                      </ul>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <h4 className="font-semibold mb-2">Acceptable Payment Methods</h4>
+                      <div className="grid gap-2 md:grid-cols-2">
+                        <div>
+                          <p className="text-sm font-medium text-green-700">✓ Accepted:</p>
+                          <ul className="text-sm text-muted-foreground">
+                            <li>• Major credit/debit cards</li>
+                            <li>• Bank transfers (ACH)</li>
+                            <li>• PayPal verified accounts</li>
+                            <li>• Wire transfers (for large amounts)</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-red-700">✗ Not Accepted:</p>
+                          <ul className="text-sm text-muted-foreground">
+                            <li>• Cryptocurrency</li>
+                            <li>• Cash or money orders</li>
+                            <li>• Prepaid cards</li>
+                            <li>• Anonymous transfers</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Heart className="h-5 w-5 text-accent" />
+                        Support Our Mission
+                      </CardTitle>
+                      <CardDescription>Help us continue building an amazing community</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground mb-4">
+                        Your donations help us maintain our community spaces, support projects, 
+                        and create opportunities for growth and collaboration.
+                      </p>
+                      <div className="space-y-2">
+                        <h5 className="font-semibold">Donation Impact:</h5>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• $25 - Sponsors one community event</li>
+                          <li>• $50 - Supports project materials</li>
+                          <li>• $100 - Funds workshop equipment</li>
+                          <li>• $250+ - Enables major initiatives</li>
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <DonationForm />
+                </div>
+              </div>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-accent" />
+                    Secure Donations
+                  </CardTitle>
+                  <CardDescription>Support our community with verified, secure donations</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                      <Heart className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">Authentication Required</h3>
+                    <p className="text-muted-foreground mb-4">
+                      For security and compliance reasons, you must be signed in to make donations. 
+                      This helps us verify your identity and protect against fraud.
+                    </p>
+                    <Button onClick={() => setShowAuth(true)} className="mb-4">
+                      Sign In to Donate
+                    </Button>
+                    <div className="text-xs text-muted-foreground">
+                      <p>🔒 SSL Encrypted • PCI Compliant • AML Verified</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+
+      </main>
     </div>
   );
 };
