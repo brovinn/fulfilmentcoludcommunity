@@ -106,11 +106,13 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-2xl">C</span>
-            </div>
+            <img 
+              src="/lovable-uploads/caf7ba3d-0c2a-4ed0-af59-329e325e12fb.png" 
+              alt="Fulfilment Centre Logo" 
+              className="h-16 w-auto"
+            />
           </div>
-          <CardTitle className="text-2xl text-primary">Welcome to Community Chat</CardTitle>
+          <CardTitle className="text-2xl text-primary">Welcome to Fulfilment Centre</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">

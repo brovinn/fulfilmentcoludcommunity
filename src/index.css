@@ -2,62 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Social Media Design System - Facebook-inspired modern theme */
+/* Fulfilment Centre Design System - Logo-inspired green theme */
 
 @layer base {
   :root {
-    --background: 240 10% 97%;
-    --foreground: 240 10% 8%;
+    --background: 210 20% 98%;
+    --foreground: 160 60% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 8%;
+    --card-foreground: 160 60% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 8%;
+    --popover-foreground: 160 60% 15%;
 
-    --primary: 221 83% 53%;
+    --primary: 162 78% 35%;
     --primary-foreground: 0 0% 98%;
-    --primary-hover: 221 83% 48%;
+    --primary-hover: 162 78% 30%;
 
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 6% 10%;
-    --secondary-hover: 240 5% 94%;
+    --secondary: 162 15% 96%;
+    --secondary-foreground: 160 30% 25%;
+    --secondary-hover: 162 15% 92%;
 
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
+    --muted: 162 15% 96%;
+    --muted-foreground: 160 20% 50%;
 
-    --accent: 142 76% 36%;
-    --accent-foreground: 0 0% 98%;
-    --accent-hover: 142 76% 32%;
+    --accent: 45 87% 55%;
+    --accent-foreground: 160 60% 15%;
+    --accent-hover: 45 87% 50%;
 
-    --success: 142 76% 36%;
-    --warning: 38 92% 50%;
+    --success: 162 78% 35%;
+    --warning: 45 87% 55%;
     --danger: 0 84% 60%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 6% 90%;
-    --input: 240 6% 95%;
-    --ring: 221 83% 53%;
+    --border: 162 20% 85%;
+    --input: 162 15% 95%;
+    --ring: 162 78% 35%;
 
     --sidebar-bg: 0 0% 100%;
     --nav-bg: 0 0% 100%;
-    --feed-bg: 240 10% 97%;
+    --feed-bg: 210 20% 98%;
     
-    --shadow-light: 240 5% 84%;
-    --shadow-medium: 240 6% 77%;
+    --shadow-light: 162 15% 85%;
+    --shadow-medium: 162 20% 75%;
 
     --radius: 0.5rem;
 
     /* Social media specific colors */
-    --like-color: 221 83% 53%;
-    --comment-color: 240 4% 46%;
-    --share-color: 142 76% 36%;
+    --like-color: 0 84% 60%;
+    --comment-color: 162 78% 35%;
+    --share-color: 45 87% 55%;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(258 90% 66%));
-    --gradient-accent: linear-gradient(135deg, hsl(142 76% 36%), hsl(166 72% 40%));
+    --gradient-primary: linear-gradient(135deg, hsl(162 78% 35%), hsl(162 78% 45%));
+    --gradient-accent: linear-gradient(135deg, hsl(45 87% 55%), hsl(45 87% 65%));
     
     /* Animations */
     --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
