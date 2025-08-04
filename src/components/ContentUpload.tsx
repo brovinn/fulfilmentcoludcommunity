@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -59,19 +60,14 @@ export const ContentUpload = ({ tabType, onUploadSuccess }: ContentUploadProps) 
         .from('content')
         .insert({
           title,
-          description: description || null,
-          content_text: content || null,
+          description,
+          content_text: content,
           image_url: imageUrl,
           tab_type: tabType,
-          user_id: user.id
+          user_id: user.id,
         });
 
       if (insertError) throw insertError;
-
-      toast({
-        title: "Content uploaded successfully",
-        description: "Your content has been added to the community",
-      });
 
       // Reset form
       setTitle("");
@@ -79,39 +75,69 @@ export const ContentUpload = ({ tabType, onUploadSuccess }: ContentUploadProps) 
       setContent("");
       setFile(null);
       
-      onUploadSuccess();
-    } catch (err: any) {
-      setError(err.message || "Failed to upload content");
       toast({
-        title: "Upload failed",
-        description: err.message || "Failed to upload content",
-        variant: "destructive",
+        title: "Success",
+        description: "Content uploaded successfully!",
       });
+      
+      onUploadSuccess();
+    } catch (error: any) {
+      console.error('Error uploading content:', error);
+      setError(error.message || 'Failed to upload content');
     } finally {
       setLoading(false);
     }
   };
 
+  const getUserProfile = async () => {
+    if (!user) return null;
+    
+    const { data } = await supabase
+      .from('profiles')
+      .select('display_name, avatar_url')
+      .eq('user_id', user.id)
+      .single();
+    
+    return data;
+  };
+
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  useState(() => {
+    if (user) {
+      getUserProfile().then(setUserProfile);
+    }
+  });
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Upload Content</CardTitle>
+        <div className="flex items-center space-x-3">
+          <Avatar>
+            <AvatarImage src={userProfile?.avatar_url || user?.user_metadata?.avatar_url || ""} />
+            <AvatarFallback>
+              {userProfile?.display_name?.charAt(0) || user?.user_metadata?.display_name?.charAt(0) || user?.email?.charAt(0) || "U"}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <CardTitle className="text-lg">
+              Create New {tabType === 'home' ? 'Reel' : 'Post'}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Posting as {userProfile?.display_name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User'}
+            </p>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
           <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
+            <Label htmlFor="title">Title</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter a title"
+              placeholder="Enter title"
               required
             />
           </div>
@@ -122,7 +148,7 @@ export const ContentUpload = ({ tabType, onUploadSuccess }: ContentUploadProps) 
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description (optional)"
+              placeholder="Enter description"
             />
           </div>
 
@@ -132,27 +158,30 @@ export const ContentUpload = ({ tabType, onUploadSuccess }: ContentUploadProps) 
               id="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Enter your content here (optional)"
-              rows={4}
+              placeholder="What's on your mind?"
+              className="min-h-[100px]"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="file">File Upload</Label>
+            <Label htmlFor="file">
+              {tabType === 'home' ? 'Video/Image' : 'Image'} (Optional)
+            </Label>
             <Input
               id="file"
               type="file"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
-              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
+              accept={tabType === 'home' ? "image/*,video/*" : "image/*"}
             />
-            {file && (
-              <p className="text-sm text-muted-foreground">
-                Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-              </p>
-            )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading || !title.trim()}>
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <Button type="submit" disabled={loading} className="w-full">
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -161,7 +190,7 @@ export const ContentUpload = ({ tabType, onUploadSuccess }: ContentUploadProps) 
             ) : (
               <>
                 <Upload className="mr-2 h-4 w-4" />
-                Upload Content
+                Upload {tabType === 'home' ? 'Reel' : 'Content'}
               </>
             )}
           </Button>

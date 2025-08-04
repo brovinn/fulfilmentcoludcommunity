@@ -12,6 +12,7 @@ interface Comment {
   id: string;
   comment_text: string;
   created_at: string;
+  user_id: string;
   profiles: {
     display_name: string;
     avatar_url: string | null;
@@ -40,19 +41,33 @@ const CommentModal = ({ isOpen, onClose, contentId }: CommentModalProps) => {
 
   const loadComments = async () => {
     if (!contentId) return;
-    
+
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('comment-system', {
-        method: 'GET',
-        body: null,
-        headers: {
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-      });
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('content_id', contentId)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setComments(data.comments || []);
+      // Get profile data separately
+      if (data) {
+        const userIds = [...new Set(data.map(comment => comment.user_id))];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, avatar_url')
+          .in('user_id', userIds);
+
+        const commentsWithProfiles = data.map(comment => ({
+          ...comment,
+          profiles: profiles?.find(p => p.user_id === comment.user_id) || {
+            display_name: 'Unknown User',
+            avatar_url: null
+          }
+        }));
+        setComments(commentsWithProfiles);
+      }
+
     } catch (error) {
       console.error('Error loading comments:', error);
       toast({
@@ -70,30 +85,37 @@ const CommentModal = ({ isOpen, onClose, contentId }: CommentModalProps) => {
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('comment-system', {
-        body: {
+      const { data, error } = await supabase
+        .from('comments')
+        .insert({
           content_id: contentId,
-          comment_text: newComment.trim(),
-        },
-        headers: {
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-      });
+          user_id: user.id,
+          comment_text: newComment.trim()
+        })
+        .select('*')
+        .single();
 
       if (error) throw error;
 
-      setComments(prev => [...prev, data.comment]);
+      const newComment = {
+        ...data,
+        profiles: {
+          display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'User',
+          avatar_url: user.user_metadata?.avatar_url || null
+        }
+      };
+
+      setComments(prev => [newComment, ...prev]);
       setNewComment("");
-      
       toast({
-        title: "Comment posted",
-        description: "Your comment has been added successfully",
+        title: "Success",
+        description: "Comment added successfully",
       });
     } catch (error) {
-      console.error('Error posting comment:', error);
+      console.error('Error submitting comment:', error);
       toast({
         title: "Error",
-        description: "Failed to post comment",
+        description: "Failed to add comment",
         variant: "destructive",
       });
     } finally {
@@ -101,99 +123,82 @@ const CommentModal = ({ isOpen, onClose, contentId }: CommentModalProps) => {
     }
   };
 
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return "Just now";
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-    return `${Math.floor(diffInMinutes / 1440)}d ago`;
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Comments</DialogTitle>
         </DialogHeader>
-
-        {/* Comments List */}
-        <div className="flex-1 overflow-y-auto space-y-4 py-4">
+        
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
           {loading ? (
             <div className="flex justify-center">
-              <Loader2 className="w-6 h-6 animate-spin" />
+              <Loader2 className="h-6 w-6 animate-spin" />
             </div>
-          ) : comments.length > 0 ? (
+          ) : comments.length === 0 ? (
+            <p className="text-center text-muted-foreground">No comments yet. Be the first to comment!</p>
+          ) : (
             comments.map((comment) => (
               <div key={comment.id} className="flex space-x-3">
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={comment.profiles.avatar_url || "/placeholder.svg"} />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    {comment.profiles.display_name[0]}
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={comment.profiles?.avatar_url || ""} />
+                  <AvatarFallback>
+                    {comment.profiles?.display_name?.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <div className="bg-secondary rounded-lg p-3">
-                    <p className="font-semibold text-sm">{comment.profiles.display_name}</p>
-                    <p className="text-sm mt-1">{comment.comment_text}</p>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-semibold text-sm">
+                      {comment.profiles?.display_name || "Unknown User"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(comment.created_at).toLocaleDateString()}
+                    </span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatTimeAgo(comment.created_at)}
-                  </p>
+                  <p className="text-sm mt-1">{comment.comment_text}</p>
                 </div>
               </div>
             ))
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No comments yet. Be the first to comment!</p>
-            </div>
           )}
         </div>
 
-        {/* Comment Input */}
-        {user ? (
-          <div className="border-t pt-4">
-            <div className="flex space-x-3">
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={user.user_metadata?.avatar_url || "/placeholder.svg"} />
-                <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                  {user.user_metadata?.display_name?.[0] || user.email?.[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <Textarea
-                  placeholder="Write a comment..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  className="min-h-[60px] resize-none"
-                />
-                <div className="flex justify-end mt-2">
-                  <Button
-                    size="sm"
-                    onClick={handleSubmitComment}
-                    disabled={!newComment.trim() || submitting}
-                    className="bg-primary hover:bg-primary-hover"
-                  >
-                    {submitting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4 mr-1" />
-                        Post
-                      </>
-                    )}
-                  </Button>
-                </div>
+        <div className="border-t pt-4">
+          <div className="flex space-x-2">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={user?.user_metadata?.avatar_url || ""} />
+              <AvatarFallback>
+                {user?.user_metadata?.display_name?.charAt(0) || user?.email?.charAt(0) || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 space-y-2">
+              <Textarea
+                placeholder="Write a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="min-h-[60px]"
+              />
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSubmitComment}
+                  disabled={!newComment.trim() || submitting}
+                  size="sm"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Posting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Post
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           </div>
-        ) : (
-          <div className="border-t pt-4 text-center">
-            <p className="text-muted-foreground">Sign in to post a comment</p>
-          </div>
-        )}
+        </div>
       </DialogContent>
     </Dialog>
   );
