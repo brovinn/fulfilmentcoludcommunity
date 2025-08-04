@@ -7,13 +7,16 @@ import { Progress } from "@/components/ui/progress";
 import { ContentUpload } from "@/components/ContentUpload";
 import { DonationForm } from "@/components/DonationForm";
 import { CommunityChat } from "@/components/CommunityChat";
+import ReelsFeed from "@/components/ReelsFeed";
+import CommentModal from "@/components/CommentModal";
 import Auth from "./Auth";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Download, Heart, MessageCircle, Clock, Calendar, Users, Upload, Plus, MoreHorizontal } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Download, Heart, MessageCircle, Clock, Calendar, Users, Upload, Plus, MoreHorizontal, Globe } from "lucide-react";
 
 interface ContentItem {
   id: string;
@@ -41,6 +44,10 @@ const Index = () => {
   });
   const [likes, setLikes] = useState<{ [key: string]: number }>({});
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
+  const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
+  const [facebookUrl, setFacebookUrl] = useState("https://www.facebook.com/fulfilmentcentre/");
+  const [isImporting, setIsImporting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -179,6 +186,39 @@ const Index = () => {
   const getFileName = (title: string, url: string) => {
     const extension = getFileExtension(url);
     return `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${extension}`;
+  };
+
+  const handleCommentClick = (contentId: string) => {
+    setSelectedContentId(contentId);
+    setCommentModalOpen(true);
+  };
+
+  const importFacebookFeed = async () => {
+    setIsImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('facebook-import', {
+        body: { facebookUrl }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Import successful",
+        description: `Imported ${data.imported} posts from Facebook`,
+      });
+
+      // Reload content to show imported posts
+      loadContent();
+    } catch (error) {
+      console.error('Error importing Facebook feed:', error);
+      toast({
+        title: "Import failed",
+        description: "Failed to import Facebook feed",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const ContentList = ({ tabType }: { tabType: string }) => (
@@ -337,7 +377,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background" style={{
-      backgroundImage: "url('/lovable-uploads/2a270226-863c-469b-8205-7199714e58ce.png')",
+      backgroundImage: "url('/lovable-uploads/caf7ba3d-0c2a-4ed0-af59-329e325e12fb.png')",
       backgroundSize: "200px",
       backgroundRepeat: "no-repeat",
       backgroundPosition: "top right",
@@ -351,7 +391,7 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <img 
-                src="/lovable-uploads/2a270226-863c-469b-8205-7199714e58ce.png" 
+                src="/lovable-uploads/caf7ba3d-0c2a-4ed0-af59-329e325e12fb.png" 
                 alt="Fulfilment Centre Logo" 
                 className="h-12 w-auto"
               />
@@ -397,16 +437,16 @@ const Index = () => {
             <TabsTrigger value="contribute">Contribute</TabsTrigger>
           </TabsList>
 
-          {/* Home Tab */}
+          {/* Home Tab - Reels Feed */}
           <TabsContent value="home" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold">Welcome to Fulfilment Centre</h2>
+              <h2 className="text-2xl font-semibold">Community Reels</h2>
               {user ? (
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="mr-2 h-4 w-4" />
-                      Upload Content
+                      Create Reel
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
@@ -415,20 +455,20 @@ const Index = () => {
                 </Dialog>
               ) : (
                 <Button onClick={() => setShowAuth(true)}>
-                  Sign In to Upload
+                  Sign In to Create
                 </Button>
               )}
             </div>
             
             {!user && (
-              <Card className="bg-muted/50">
+              <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <h3 className="text-lg font-semibold mb-2">Join Our Community</h3>
+                    <h3 className="text-lg font-semibold mb-2">Join Our Community Reels</h3>
                     <p className="text-muted-foreground mb-4">
-                      Sign in to upload content, participate in discussions, and connect with the community
+                      Sign in to create reels, like content, and comment on community posts
                     </p>
-                    <Button onClick={() => setShowAuth(true)}>
+                    <Button onClick={() => setShowAuth(true)} className="bg-gradient-to-r from-primary to-accent text-white hover:opacity-90">
                       Get Started
                     </Button>
                   </div>
@@ -436,107 +476,8 @@ const Index = () => {
               </Card>
             )}
             
-            {/* Preview sections for all content */}
-            <div className="grid gap-6">
-              {/* Latest Projects Preview */}
-              {content.projects?.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      Latest Projects
-                      <Button variant="outline" size="sm" onClick={() => setActiveTab("projects")}>
-                        View All
-                      </Button>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {content.projects.slice(0, 2).map((item) => (
-                        <Card key={item.id} className="border-muted">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base">{item.title}</CardTitle>
-                            {item.description && <CardDescription className="text-xs">{item.description}</CardDescription>}
-                          </CardHeader>
-                          <CardContent className="pt-2">
-                            {item.content_text && <p className="text-sm line-clamp-2 mb-2">{item.content_text}</p>}
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(item.created_at).toLocaleDateString()}
-                            </p>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Latest Updates Preview */}
-              {content.updates?.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      Latest Updates
-                      <Button variant="outline" size="sm" onClick={() => setActiveTab("updates")}>
-                        View All
-                      </Button>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {content.updates.slice(0, 2).map((item) => (
-                        <Card key={item.id} className="border-muted">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base">{item.title}</CardTitle>
-                            {item.description && <CardDescription className="text-xs">{item.description}</CardDescription>}
-                          </CardHeader>
-                          <CardContent className="pt-2">
-                            {item.content_text && <p className="text-sm line-clamp-2 mb-2">{item.content_text}</p>}
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(item.created_at).toLocaleDateString()}
-                            </p>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* History Preview */}
-              {content.history?.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      Community History
-                      <Button variant="outline" size="sm" onClick={() => setActiveTab("history")}>
-                        View All
-                      </Button>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {content.history.slice(0, 2).map((item) => (
-                        <Card key={item.id} className="border-muted">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base">{item.title}</CardTitle>
-                            {item.description && <CardDescription className="text-xs">{item.description}</CardDescription>}
-                          </CardHeader>
-                          <CardContent className="pt-2">
-                            {item.content_text && <p className="text-sm line-clamp-2 mb-2">{item.content_text}</p>}
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(item.created_at).toLocaleDateString()}
-                            </p>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Home Content */}
-              <ContentList tabType="home" />
-            </div>
+            {/* Reels Feed */}
+            <ReelsFeed onCommentClick={handleCommentClick} />
           </TabsContent>
 
           {/* Projects Tab */}
@@ -617,28 +558,60 @@ const Index = () => {
             )}
           </TabsContent>
 
-          {/* History Tab */}
+          {/* History Tab - Facebook Import */}
           <TabsContent value="history" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-semibold">Community History</h2>
-              {user ? (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add History
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <ContentUpload tabType="history" onUploadSuccess={loadContent} />
-                  </DialogContent>
-                </Dialog>
-              ) : (
-                <Button onClick={() => setShowAuth(true)}>
-                  Sign In to Post
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {user && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add History
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <ContentUpload tabType="history" onUploadSuccess={loadContent} />
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
             </div>
+
+            {/* Facebook Import Section */}
+            <Card className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-blue-600" />
+                  Import from Facebook
+                </CardTitle>
+                <CardDescription>
+                  Import content from your Facebook page to preserve community history
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    value={facebookUrl}
+                    onChange={(e) => setFacebookUrl(e.target.value)}
+                    placeholder="https://www.facebook.com/fulfilmentcentre/"
+                    className="flex-1"
+                  />
+                  <Button 
+                    onClick={importFacebookFeed}
+                    disabled={isImporting || !facebookUrl}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {isImporting ? 'Importing...' : 'Import Feed'}
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  This will import recent posts and content from the specified Facebook page into your community history.
+                </p>
+              </CardContent>
+            </Card>
+
             <ContentList tabType="history" />
           </TabsContent>
 
@@ -788,6 +761,13 @@ const Index = () => {
         </Tabs>
 
       </main>
+
+      {/* Comment Modal */}
+      <CommentModal
+        isOpen={commentModalOpen}
+        onClose={() => setCommentModalOpen(false)}
+        contentId={selectedContentId || ''}
+      />
     </div>
   );
 };
