@@ -25,6 +25,11 @@ interface FacebookPost {
   };
 }
 
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[FACEBOOK-IMPORT] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -32,15 +37,36 @@ serve(async (req) => {
   }
 
   try {
+    logStep("Function started");
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     if (req.method === 'POST') {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) {
+        throw new Error("No authorization header provided");
+      }
+
+      // Get authenticated user
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+      if (userError) {
+        throw new Error(`Authentication error: ${userError.message}`);
+      }
+      
+      const user = userData.user;
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+
+      logStep("User authenticated", { userId: user.id, email: user.email });
+
       const { facebookUrl } = await req.json();
       
-      console.log('Starting Facebook import for URL:', facebookUrl);
+      logStep('Starting Facebook import for URL', { facebookUrl });
       
       // Extract page ID from Facebook URL
       const pageId = extractPageIdFromUrl(facebookUrl);
@@ -48,35 +74,47 @@ serve(async (req) => {
         throw new Error('Invalid Facebook URL format');
       }
 
+      logStep('Extracted page ID', { pageId });
+
       // For demo purposes, we'll create some sample Facebook-style content
       // In a real implementation, you would use Facebook Graph API with proper authentication
       const samplePosts = await createSampleFacebookContent(pageId);
       
-      // Insert posts into the content table
-      const insertPromises = samplePosts.map(async (post) => {
-        const { data, error } = await supabaseClient
-          .from('content')
-          .insert({
-            title: post.title,
-            description: post.description,
-            content_text: post.content_text,
-            image_url: post.image_url,
-            tab_type: 'history',
-            user_id: '00000000-0000-0000-0000-000000000000', // System user for imported content
-            created_at: post.created_at
-          });
+      logStep('Generated sample posts', { count: samplePosts.length });
 
-        if (error) {
-          console.error('Error inserting post:', error);
+      // Insert posts into the content table using the authenticated user's ID
+      const insertPromises = samplePosts.map(async (post, index) => {
+        try {
+          logStep(`Inserting post ${index + 1}`, { title: post.title });
+          
+          const { data, error } = await supabaseClient
+            .from('content')
+            .insert({
+              title: post.title,
+              description: post.description,
+              content_text: post.content_text,
+              image_url: post.image_url,
+              tab_type: 'history',
+              user_id: user.id, // Use the authenticated user's ID
+              created_at: post.created_at
+            });
+
+          if (error) {
+            logStep(`Error inserting post ${index + 1}`, { error: error.message });
+            throw error;
+          }
+          
+          logStep(`Successfully inserted post ${index + 1}`);
+          return data;
+        } catch (error) {
+          logStep(`Failed to insert post ${index + 1}`, { error: error.message });
           throw error;
         }
-        
-        return data;
       });
 
       await Promise.all(insertPromises);
 
-      console.log(`Successfully imported ${samplePosts.length} posts from Facebook`);
+      logStep(`Successfully imported ${samplePosts.length} posts from Facebook`);
 
       return new Response(
         JSON.stringify({ 
@@ -100,11 +138,13 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in facebook-import function:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logStep('ERROR in facebook-import function', { message: errorMessage });
+    
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message 
+        details: errorMessage 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -115,55 +155,65 @@ serve(async (req) => {
 });
 
 function extractPageIdFromUrl(url: string): string | null {
-  // Extract page name or ID from various Facebook URL formats
-  const patterns = [
-    /facebook\.com\/([^\/\?]+)/,
-    /facebook\.com\/pages\/[^\/]+\/(\d+)/,
-    /facebook\.com\/profile\.php\?id=(\d+)/
-  ];
-  
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) {
-      return match[1];
+  try {
+    // Extract page name or ID from various Facebook URL formats
+    const patterns = [
+      /facebook\.com\/([^\/\?]+)/,
+      /facebook\.com\/pages\/[^\/]+\/(\d+)/,
+      /facebook\.com\/profile\.php\?id=(\d+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) {
+        return match[1];
+      }
     }
+    return null;
+  } catch (error) {
+    console.error('Error extracting page ID:', error);
+    return null;
   }
-  return null;
 }
 
 async function createSampleFacebookContent(pageId: string) {
-  // Create sample content that represents what might be imported from Facebook
-  const now = new Date();
-  const oneDay = 24 * 60 * 60 * 1000;
-  
-  return [
-    {
-      title: 'Welcome to Fulfilment Centre Community!',
-      description: 'Building connections and creating positive impact together',
-      content_text: 'We are excited to share our journey with you. Join us as we work together to create meaningful change in our community. Every step we take is aimed at fulfilling our mission to bring people together and make a difference.',
-      image_url: '/lovable-uploads/caf7ba3d-0c2a-4ed0-af59-329e325e12fb.png',
-      created_at: new Date(now.getTime() - oneDay * 7).toISOString()
-    },
-    {
-      title: 'Community Project Update',
-      description: 'Latest progress on our collaborative initiatives',
-      content_text: 'Our recent community project has made incredible progress! Thanks to all the volunteers and supporters who have contributed their time and energy. Together, we are making a real difference.',
-      image_url: null,
-      created_at: new Date(now.getTime() - oneDay * 5).toISOString()
-    },
-    {
-      title: 'Thank You to Our Amazing Community',
-      description: 'Celebrating the people who make it all possible',
-      content_text: 'We want to take a moment to thank every single person who has been part of our journey. Your support, feedback, and participation have been invaluable in helping us grow and improve.',
-      image_url: null,
-      created_at: new Date(now.getTime() - oneDay * 3).toISOString()
-    },
-    {
-      title: 'Looking Forward: Our Vision for the Future',
-      description: 'Exciting plans and upcoming initiatives',
-      content_text: 'As we look to the future, we are filled with excitement about the possibilities ahead. We have some amazing initiatives planned that will further strengthen our community and expand our impact.',
-      image_url: null,
-      created_at: new Date(now.getTime() - oneDay * 1).toISOString()
-    }
-  ];
+  try {
+    // Create sample content that represents what might be imported from Facebook
+    const now = new Date();
+    const oneDay = 24 * 60 * 60 * 1000;
+    
+    return [
+      {
+        title: 'Welcome to Fulfilment Centre Community!',
+        description: 'Building connections and creating positive impact together',
+        content_text: 'We are excited to share our journey with you. Join us as we work together to create meaningful change in our community. Every step we take is aimed at fulfilling our mission to bring people together and make a difference.',
+        image_url: '/lovable-uploads/caf7ba3d-0c2a-4ed0-af59-329e325e12fb.png',
+        created_at: new Date(now.getTime() - oneDay * 7).toISOString()
+      },
+      {
+        title: 'Community Project Update',
+        description: 'Latest progress on our collaborative initiatives',
+        content_text: 'Our recent community project has made incredible progress! Thanks to all the volunteers and supporters who have contributed their time and energy. Together, we are making a real difference.',
+        image_url: null,
+        created_at: new Date(now.getTime() - oneDay * 5).toISOString()
+      },
+      {
+        title: 'Thank You to Our Amazing Community',
+        description: 'Celebrating the people who make it all possible',
+        content_text: 'We want to take a moment to thank every single person who has been part of our journey. Your support, feedback, and participation have been invaluable in helping us grow and improve.',
+        image_url: null,
+        created_at: new Date(now.getTime() - oneDay * 3).toISOString()
+      },
+      {
+        title: 'Looking Forward: Our Vision for the Future',
+        description: 'Exciting plans and upcoming initiatives',
+        content_text: 'As we look to the future, we are filled with excitement about the possibilities ahead. We have some amazing initiatives planned that will further strengthen our community and expand our impact.',
+        image_url: null,
+        created_at: new Date(now.getTime() - oneDay * 1).toISOString()
+      }
+    ];
+  } catch (error) {
+    console.error('Error creating sample content:', error);
+    return [];
+  }
 }
