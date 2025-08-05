@@ -265,15 +265,23 @@ const ReelsFeed = ({ onCommentClick }: ReelsFeedProps) => {
               <div className="relative">
                 {isVideoFile(reel.image_url) ? (
                   <div className="relative">
-                    <video
+                     <video
                       ref={(el) => {
-                        if (el) videoRefs.current[reel.id] = el;
+                        if (el) {
+                          videoRefs.current[reel.id] = el;
+                          el.muted = mutedReels.has(reel.id);
+                        }
                       }}
                       src={reel.image_url}
                       className="w-full max-h-96 object-cover"
-                      muted={mutedReels.has(reel.id)}
                       loop
                       playsInline
+                      onLoadedData={() => {
+                        const video = videoRefs.current[reel.id];
+                        if (video) {
+                          video.muted = mutedReels.has(reel.id);
+                        }
+                      }}
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Button

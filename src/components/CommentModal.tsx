@@ -44,28 +44,18 @@ const CommentModal = ({ isOpen, onClose, contentId }: CommentModalProps) => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('comments')
-        .select('*')
-        .eq('content_id', contentId)
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.functions.invoke('comment-system', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: { content_id: contentId }
+      });
 
-      // Get profile data separately
-      if (data) {
-        const userIds = [...new Set(data.map(comment => comment.user_id))];
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, display_name, avatar_url')
-          .in('user_id', userIds);
+      if (error) throw error;
 
-        const commentsWithProfiles = data.map(comment => ({
-          ...comment,
-          profiles: profiles?.find(p => p.user_id === comment.user_id) || {
-            display_name: 'Unknown User',
-            avatar_url: null
-          }
-        }));
-        setComments(commentsWithProfiles);
+      if (data?.comments) {
+        setComments(data.comments);
       }
 
     } catch (error) {
@@ -85,32 +75,27 @@ const CommentModal = ({ isOpen, onClose, contentId }: CommentModalProps) => {
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase
-        .from('comments')
-        .insert({
+      const { data, error } = await supabase.functions.invoke('comment-system', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: { 
           content_id: contentId,
-          user_id: user.id,
           comment_text: newComment.trim()
-        })
-        .select('*')
-        .single();
+        }
+      });
 
       if (error) throw error;
 
-      const newComment = {
-        ...data,
-        profiles: {
-          display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'User',
-          avatar_url: user.user_metadata?.avatar_url || null
-        }
-      };
-
-      setComments(prev => [newComment, ...prev]);
-      setNewComment("");
-      toast({
-        title: "Success",
-        description: "Comment added successfully",
-      });
+      if (data?.comment) {
+        setComments(prev => [data.comment, ...prev]);
+        setNewComment("");
+        toast({
+          title: "Success",
+          description: "Comment added successfully",
+        });
+      }
     } catch (error) {
       console.error('Error submitting comment:', error);
       toast({
