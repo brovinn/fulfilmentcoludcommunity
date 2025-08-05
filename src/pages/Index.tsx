@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ContentUpload } from "@/components/ContentUpload";
-import { DonationForm } from "@/components/DonationForm";
+import { InternationalDonationForm } from "@/components";
 import { CommunityChat } from "@/components/CommunityChat";
 import ReelsFeed from "@/components/ReelsFeed";
 import CommentModal from "@/components/CommentModal";
@@ -725,7 +725,7 @@ const Index = () => {
                       </div>
                     </CardContent>
                   </Card>
-                  <DonationForm />
+                  <InternationalDonationForm />
                 </div>
               </div>
             ) : (

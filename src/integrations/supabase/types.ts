@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      comments: {
+        Row: {
+          comment_text: string
+          content_id: string
+          created_at: string
+          id: string
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment_text: string
+          content_id: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment_text?: string
+          content_id?: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content: {
         Row: {
           content_text: string | null
@@ -84,34 +129,64 @@ export type Database = {
       }
       donations: {
         Row: {
+          address: string | null
           amount: number
+          anonymous: boolean | null
+          city: string | null
+          country: string | null
           created_at: string
           currency: string | null
           donor_email: string | null
+          first_name: string | null
           id: string
+          last_name: string | null
+          marketing_consent: boolean | null
           message: string | null
+          phone: string | null
+          postal_code: string | null
+          state: string | null
           status: string | null
           stripe_session_id: string | null
           user_id: string | null
         }
         Insert: {
+          address?: string | null
           amount: number
+          anonymous?: boolean | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           currency?: string | null
           donor_email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
+          marketing_consent?: boolean | null
           message?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
           status?: string | null
           stripe_session_id?: string | null
           user_id?: string | null
         }
         Update: {
+          address?: string | null
           amount?: number
+          anonymous?: boolean | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           currency?: string | null
           donor_email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
+          marketing_consent?: boolean | null
           message?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
           status?: string | null
           stripe_session_id?: string | null
           user_id?: string | null
