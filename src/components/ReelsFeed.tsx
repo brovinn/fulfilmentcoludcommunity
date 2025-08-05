@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, MessageCircle, Share, Play, Pause, Volume2, VolumeX, Trash2, MoreHorizontal } from "lucide-react";
+import { Heart, MessageCircle, Share, Play, Pause, Volume2, VolumeX, Trash2, MoreHorizontal, Download, Copy, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -166,6 +166,80 @@ const ReelsFeed = ({ onCommentClick }: ReelsFeedProps) => {
       toast({
         title: "Error",
         description: "Failed to delete reel",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShare = async (reel: ReelItem) => {
+    const shareData = {
+      title: reel.title,
+      text: reel.description || reel.content_text || 'Check out this content from our community!',
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        toast({
+          title: "Shared successfully",
+          description: "Content shared via device",
+        });
+      } else {
+        // Fallback to clipboard
+        await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+        toast({
+          title: "Copied to clipboard",
+          description: "Share content copied to clipboard",
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast({
+        title: "Share failed",
+        description: "Unable to share content",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownload = async (reel: ReelItem) => {
+    if (!reel.image_url) {
+      toast({
+        title: "No content to download",
+        description: "This reel doesn't have downloadable content",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(reel.image_url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Determine file extension
+      const isVideo = isVideoFile(reel.image_url);
+      const fileExtension = isVideo ? '.mp4' : '.jpg';
+      const fileName = `${reel.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}${fileExtension}`;
+      
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download started",
+        description: `${isVideo ? 'Video' : 'Image'} download initiated`,
+      });
+    } catch (error) {
+      console.error('Error downloading:', error);
+      toast({
+        title: "Download failed",
+        description: "Unable to download content",
         variant: "destructive",
       });
     }
@@ -342,9 +416,21 @@ const ReelsFeed = ({ onCommentClick }: ReelsFeedProps) => {
                   <MessageCircle className="h-5 w-5 mr-1" />
                   Comment
                 </Button>
-                <Button variant="ghost" size="sm">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleShare(reel)}
+                >
                   <Share className="h-5 w-5 mr-1" />
                   Share
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDownload(reel)}
+                >
+                  <Download className="h-5 w-5 mr-1" />
+                  Download
                 </Button>
               </div>
             </div>
