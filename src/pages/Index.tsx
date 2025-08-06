@@ -113,7 +113,7 @@ const Index = () => {
     if (!user) {
       toast({
         title: "Sign in required",
-        description: "Please sign in to like posts",
+        description: "Please sign in to like content",
         variant: "destructive",
       });
       return;
@@ -204,10 +204,10 @@ const Index = () => {
 
       toast({
         title: "Import successful",
-        description: `Imported ${data.imported} posts from Facebook`,
+        description: `Imported ${data.imported} items from Facebook`,
       });
 
-      // Reload content to show imported posts
+      // Reload content to show imported items
       loadContent();
     } catch (error) {
       console.error('Error importing Facebook feed:', error);
@@ -432,7 +432,7 @@ const Index = () => {
             <TabsTrigger value="home">Home</TabsTrigger>
             <TabsTrigger value="projects">Projects</TabsTrigger>
             <TabsTrigger value="updates">Updates</TabsTrigger>
-            <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="posts">Chat</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="contribute">Contribute</TabsTrigger>
           </TabsList>
@@ -466,7 +466,7 @@ const Index = () => {
                   <div className="text-center">
                     <h3 className="text-lg font-semibold mb-2">Join Our Community Reels</h3>
                     <p className="text-muted-foreground mb-4">
-                      Sign in to create reels, like content, and comment on community posts
+                      Sign in to create reels, like content, and comment on community content
                     </p>
                     <Button onClick={() => setShowAuth(true)} className="bg-gradient-to-r from-primary to-accent text-white hover:opacity-90">
                       Get Started
@@ -530,7 +530,7 @@ const Index = () => {
             <ContentList tabType="updates" />
           </TabsContent>
 
-          {/* Posts Tab */}
+          {/* Chat Tab */}
           <TabsContent value="posts" className="space-y-6">
             {user ? (
               <CommunityChat />
@@ -607,7 +607,7 @@ const Index = () => {
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  This will import recent posts and content from the specified Facebook page into your community history.
+                  This will import recent content from the specified Facebook page into your community history.
                 </p>
               </CardContent>
             </Card>

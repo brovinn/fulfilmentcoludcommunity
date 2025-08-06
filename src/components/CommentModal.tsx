@@ -13,10 +13,10 @@ interface Comment {
   comment_text: string;
   created_at: string;
   user_id: string;
-  profiles: {
-    display_name: string;
+  profiles?: {
+    display_name: string | null;
     avatar_url: string | null;
-  };
+  } | null;
 }
 
 interface CommentModalProps {
@@ -44,18 +44,29 @@ const CommentModal = ({ isOpen, onClose, contentId }: CommentModalProps) => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('comment-system', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: { content_id: contentId }
-      });
+      const { data: commentsData, error } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('content_id', contentId)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      if (data?.comments) {
-        setComments(data.comments);
+      if (commentsData && commentsData.length > 0) {
+        const userIds = [...new Set(commentsData.map(comment => comment.user_id))];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, avatar_url')
+          .in('user_id', userIds);
+
+        const commentsWithProfiles = commentsData.map(comment => ({
+          ...comment,
+          profiles: profiles?.find(p => p.user_id === comment.user_id) || null
+        }));
+
+        setComments(commentsWithProfiles);
+      } else {
+        setComments([]);
       }
 
     } catch (error) {
@@ -75,27 +86,36 @@ const CommentModal = ({ isOpen, onClose, contentId }: CommentModalProps) => {
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('comment-system', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: { 
+      const { data, error } = await supabase
+        .from('comments')
+        .insert({
           content_id: contentId,
-          comment_text: newComment.trim()
-        }
-      });
+          comment_text: newComment.trim(),
+          user_id: user.id,
+        })
+        .select('*')
+        .single();
 
       if (error) throw error;
 
-      if (data?.comment) {
-        setComments(prev => [data.comment, ...prev]);
-        setNewComment("");
-        toast({
-          title: "Success",
-          description: "Comment added successfully",
-        });
-      }
+      // Get user profile for the new comment
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name, avatar_url')
+        .eq('user_id', user.id)
+        .single();
+
+      const newCommentWithProfile = {
+        ...data,
+        profiles: profile
+      };
+
+      setComments(prev => [newCommentWithProfile, ...prev]);
+      setNewComment("");
+      toast({
+        title: "Success",
+        description: "Comment added successfully",
+      });
     } catch (error) {
       console.error('Error submitting comment:', error);
       toast({

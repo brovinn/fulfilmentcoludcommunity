@@ -186,7 +186,7 @@ const Index = () => {
 
       toast({
         title: "Success",
-        description: `Imported ${data.imported} posts from Facebook`,
+        description: `Imported ${data.imported} items from Facebook`,
       });
       
       setFacebookUrl("");
@@ -335,7 +335,7 @@ const Index = () => {
               <CardHeader>
                 <CardTitle>Import from Facebook</CardTitle>
                 <CardDescription>
-                  Import your Facebook posts to preserve your community history
+                  Import your Facebook content to preserve your community history
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
