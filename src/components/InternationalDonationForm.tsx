@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CreditCard, Shield, Globe } from "lucide-react";
 
@@ -70,6 +71,7 @@ const InternationalDonationForm = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const validateForm = () => {
     const newErrors: string[] = [];
@@ -105,6 +107,11 @@ const InternationalDonationForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      setErrors(["Please log in to make a donation"]);
+      return;
+    }
+    
     if (!validateForm()) {
       return;
     }
@@ -127,6 +134,8 @@ const InternationalDonationForm = () => {
         message: formData.message,
         anonymous: formData.anonymous,
         marketing_consent: formData.marketing_consent,
+        user_id: user.id,
+        status: 'pending'
       };
 
       const { error } = await supabase
@@ -177,6 +186,22 @@ const InternationalDonationForm = () => {
   };
 
   const selectedCurrency = CURRENCIES.find(c => c.code === formData.currency);
+
+  if (!user) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Support Our Mission</CardTitle>
+        </CardHeader>
+        <CardContent className="text-center py-8">
+          <p className="text-muted-foreground mb-4">Please log in to make a donation</p>
+          <Button onClick={() => window.location.href = '/auth'}>
+            Log In
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-2xl mx-auto">

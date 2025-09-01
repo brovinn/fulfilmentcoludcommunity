@@ -25,7 +25,10 @@ export const DonationForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      setError("Please log in to make a donation");
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -70,6 +73,25 @@ export const DonationForm = () => {
       setLoading(false);
     }
   };
+
+  if (!user) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Heart className="h-5 w-5 text-accent" />
+            Make a Donation
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center py-8">
+          <p className="text-muted-foreground mb-4">Please log in to make a donation</p>
+          <Button onClick={() => window.location.href = '/auth'}>
+            Log In
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

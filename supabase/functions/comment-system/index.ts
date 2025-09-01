@@ -81,6 +81,12 @@ serve(async (req) => {
         .eq('content_id', contentId)
         .order('created_at', { ascending: true });
 
+      // Get comment count
+      const { count: commentCount } = await supabaseClient
+        .from('comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('content_id', contentId);
+
       if (error) {
         console.error('Error fetching comments:', error);
         return new Response(
@@ -93,7 +99,7 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ comments }),
+        JSON.stringify({ comments, commentCount: commentCount || 0 }),
         { 
           status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
