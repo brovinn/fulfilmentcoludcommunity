@@ -17,30 +17,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+    let subscription: any = null; // New variable to hold the subscription
+
+    // Get the initial session first
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      setSession(initialSession);
+      setUser(initialSession?.user ?? null);
+      setLoading(false);
+
+      // Create profile for initial sign-in
+      if (initialSession?.user) {
+        createUserProfile(initialSession.user);
+      }
+
+      // Set up the auth state listener AFTER the initial session is handled
+      const { data } = supabase.auth.onAuthStateChange((event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
         setLoading(false);
 
         // Create or update profile when user signs up or signs in
-        if (event === 'SIGNED_IN' && session?.user) {
-          setTimeout(() => {
-            createUserProfile(session.user);
-          }, 0);
+        if (event === 'SIGNED_IN' && newSession?.user) {
+          createUserProfile(newSession.user);
         }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      });
+      subscription = data.subscription;
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   const createUserProfile = async (user: User) => {
