@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      allowed_users: {
+        Row: {
+          added_by: string
+          created_at: string
+          email: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          email: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          email?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           comment_text: string
@@ -290,6 +314,39 @@ export type Database = {
         }
         Relationships: []
       }
+      security_questionnaires: {
+        Row: {
+          completed_at: string
+          created_at: string
+          id: string
+          questionnaire_data: Json
+          updated_at: string
+          user_id: string
+          week_number: number
+          year: number
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          id?: string
+          questionnaire_data: Json
+          updated_at?: string
+          user_id: string
+          week_number: number
+          year: number
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          id?: string
+          questionnaire_data?: Json
+          updated_at?: string
+          user_id?: string
+          week_number?: number
+          year?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -316,6 +373,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_current_week_questionnaire_status: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -324,6 +385,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
+      is_user_allowed: {
         Args: { _user_id: string }
         Returns: boolean
       }
