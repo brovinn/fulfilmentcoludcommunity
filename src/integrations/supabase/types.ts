@@ -151,6 +151,36 @@ export type Database = {
           },
         ]
       }
+      content_moderation_log: {
+        Row: {
+          action_type: string
+          admin_user_id: string
+          created_at: string
+          id: string
+          reason: string | null
+          target_id: string
+          target_table: string
+        }
+        Insert: {
+          action_type: string
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          target_id: string
+          target_table: string
+        }
+        Update: {
+          action_type?: string
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          target_id?: string
+          target_table?: string
+        }
+        Relationships: []
+      }
       donations: {
         Row: {
           address: string | null
@@ -316,32 +346,38 @@ export type Database = {
       }
       security_questionnaires: {
         Row: {
+          church_level: string
           completed_at: string
           created_at: string
           id: string
-          questionnaire_data: Json
+          pastor_name: string
           updated_at: string
           user_id: string
+          user_name: string
           week_number: number
           year: number
         }
         Insert: {
+          church_level?: string
           completed_at?: string
           created_at?: string
           id?: string
-          questionnaire_data: Json
+          pastor_name?: string
           updated_at?: string
           user_id: string
+          user_name?: string
           week_number: number
           year: number
         }
         Update: {
+          church_level?: string
           completed_at?: string
           created_at?: string
           id?: string
-          questionnaire_data?: Json
+          pastor_name?: string
           updated_at?: string
           user_id?: string
+          user_name?: string
           week_number?: number
           year?: number
         }
@@ -365,6 +401,48 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      video_sessions: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          description: string | null
+          ended_at: string | null
+          id: string
+          is_live: boolean
+          recording_url: string | null
+          started_at: string | null
+          stream_key: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          is_live?: boolean
+          recording_url?: string | null
+          started_at?: string | null
+          stream_key: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          is_live?: boolean
+          recording_url?: string | null
+          started_at?: string | null
+          stream_key?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }

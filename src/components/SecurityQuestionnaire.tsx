@@ -6,45 +6,31 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 
 const securityQuestions = [
   {
-    id: "password_changed",
-    question: "Have you changed your password in the last 3 months?",
-    type: "radio",
-    options: ["Yes", "No", "Not Sure"]
+    id: "user_name",
+    question: "Enter your full name:",
+    type: "text",
+    required: true
   },
   {
-    id: "suspicious_activity",
-    question: "Have you noticed any suspicious activity on your accounts?",
-    type: "radio",
-    options: ["Yes", "No", "Not Sure"]
+    id: "pastor_name",
+    question: "Pastor's name:",
+    type: "text",
+    defaultValue: "TJ Machote",
+    readonly: true
   },
   {
-    id: "software_updates",
-    question: "Are your devices and software up to date?",
+    id: "church_level",
+    question: "Church level:",
     type: "radio",
-    options: ["Yes", "No", "Not Sure"]
-  },
-  {
-    id: "phishing_attempts",
-    question: "Have you received any suspicious emails or messages?",
-    type: "radio",
-    options: ["Yes", "No", "Not Sure"]
-  },
-  {
-    id: "backup_status",
-    question: "Do you regularly backup your important data?",
-    type: "radio",
-    options: ["Yes", "No", "Sometimes"]
-  },
-  {
-    id: "additional_comments",
-    question: "Any additional security concerns or comments?",
-    type: "textarea"
+    options: ["saint", "administrator"],
+    required: true
   }
 ];
 
@@ -55,7 +41,9 @@ interface SecurityQuestionnaireProps {
 const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, string>>({
+    pastor_name: "TJ Machote"
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasCompletedThisWeek, setHasCompletedThisWeek] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -91,7 +79,7 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
   const handleSubmit = async () => {
     if (!user) return;
 
-    const requiredQuestions = securityQuestions.filter(q => q.type !== 'textarea');
+    const requiredQuestions = securityQuestions.filter(q => q.required);
     const unansweredRequired = requiredQuestions.some(q => !answers[q.id]);
 
     if (unansweredRequired) {
@@ -114,7 +102,9 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
         .from('security_questionnaires')
         .insert({
           user_id: user.id,
-          questionnaire_data: answers,
+          user_name: answers.user_name,
+          pastor_name: answers.pastor_name || "TJ Machote",
+          church_level: answers.church_level,
           week_number: weekNumber,
           year: year
         });
@@ -179,9 +169,19 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
           <div key={question.id} className="space-y-3">
             <Label className="text-sm font-medium">
               {question.question}
-              {question.type !== 'textarea' && <span className="text-red-500 ml-1">*</span>}
+              {question.required && <span className="text-red-500 ml-1">*</span>}
             </Label>
             
+            {question.type === 'text' && (
+              <Input
+                value={answers[question.id] || question.defaultValue || ""}
+                onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                placeholder={`Enter ${question.question.toLowerCase()}`}
+                readOnly={question.readonly}
+                className={question.readonly ? "bg-gray-100" : ""}
+              />
+            )}
+
             {question.type === 'radio' && (
               <RadioGroup
                 value={answers[question.id] || ""}
