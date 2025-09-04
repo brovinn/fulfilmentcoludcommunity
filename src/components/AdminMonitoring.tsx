@@ -18,6 +18,7 @@ import {
   Shield,
   Video
 } from "lucide-react";
+import TransactionDetails from "./TransactionDetails";
 
 interface TableData {
   [key: string]: any;
@@ -72,57 +73,55 @@ const AdminMonitoring = () => {
 
   const loadAllTableData = async () => {
     setLoading(true);
-    const data: Record<string, TableData[]> = {};
+    
+    try {
+      const response = await supabase.functions.invoke('admin-monitoring', {
+        body: { action: 'get_all_data' }
+      });
 
-    for (const table of tables) {
-      try {
-        const { data: tableData, error } = await supabase
-          .from(table.name as any)
-          .select('*')
-          .limit(100);
-        
-        if (error) {
-          console.error(`Error loading ${table.name}:`, error);
-          data[table.name] = [];
-        } else {
-          data[table.name] = tableData || [];
-        }
-      } catch (error) {
-        console.error(`Error loading ${table.name}:`, error);
-        data[table.name] = [];
+      if (response.error) throw response.error;
+      
+      const result = await response.data;
+      if (result.success) {
+        setTableData(result.data);
+      } else {
+        throw new Error('Failed to load data');
       }
+    } catch (error) {
+      console.error('Error loading all table data:', error);
+      toast({
+        title: "Load Failed",
+        description: "Failed to load monitoring data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-
-    setTableData(data);
-    setLoading(false);
   };
 
   const deleteRecord = async (tableName: string, recordId: string) => {
     try {
-      const { error } = await supabase
-        .from(tableName as any)
-        .delete()
-        .eq('id', recordId);
-
-      if (error) throw error;
-
-      // Log the moderation action
-      await supabase
-        .from('content_moderation_log')
-        .insert({
-          admin_user_id: user!.id,
-          action_type: `delete_${tableName}`,
-          target_table: tableName,
-          target_id: recordId,
-          reason: 'Administrator deletion'
-        });
-
-      toast({
-        title: "Record Deleted",
-        description: `Record has been removed from ${tableName}`
+      const response = await supabase.functions.invoke('admin-monitoring', {
+        body: { 
+          action: 'delete_content',
+          tableName,
+          recordId,
+          reason: 'Administrator deletion via monitoring panel'
+        }
       });
 
-      loadAllTableData();
+      if (response.error) throw response.error;
+      
+      const result = await response.data;
+      if (result.success) {
+        toast({
+          title: "Record Deleted",
+          description: result.message
+        });
+        loadAllTableData();
+      } else {
+        throw new Error(result.error || 'Delete failed');
+      }
     } catch (error) {
       console.error('Error deleting record:', error);
       toast({
@@ -180,109 +179,126 @@ const AdminMonitoring = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            Database Overview
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {getTableStats().map((table) => (
-              <div key={table.name} className="text-center p-4 border rounded-lg">
-                <div className={`${table.color} w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2`}>
-                  <table.icon className="h-4 w-4 text-white" />
-                </div>
-                <p className="text-sm font-medium capitalize">{table.name.replace('_', ' ')}</p>
-                <p className="text-lg font-bold">{table.count}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Data Tables</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue={tables[0].name}>
-            <TabsList className="grid grid-cols-4 lg:grid-cols-6 gap-1">
-              {tables.map((table) => (
-                <TabsTrigger 
-                  key={table.name} 
-                  value={table.name}
-                  className="text-xs"
-                >
-                  {table.name.replace('_', ' ').substring(0, 8)}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            
-            {tables.map((table) => (
-              <TabsContent key={table.name} value={table.name} className="mt-4">
-                <div className="border rounded-lg">
-                  <div className="p-4 border-b bg-muted/50">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold capitalize flex items-center gap-2">
-                        <table.icon className="h-4 w-4" />
-                        {table.name.replace('_', ' ')} ({tableData[table.name]?.length || 0} records)
-                      </h3>
-                      <Button onClick={loadAllTableData} variant="outline" size="sm">
-                        Refresh
-                      </Button>
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="overview">Database Overview</TabsTrigger>
+          <TabsTrigger value="tables">Data Tables</TabsTrigger>
+          <TabsTrigger value="transactions">Transactions</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Database Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {getTableStats().map((table) => (
+                  <div key={table.name} className="text-center p-4 border rounded-lg">
+                    <div className={`${table.color} w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2`}>
+                      <table.icon className="h-4 w-4 text-white" />
                     </div>
+                    <p className="text-sm font-medium capitalize">{table.name.replace('_', ' ')}</p>
+                    <p className="text-lg font-bold">{table.count}</p>
                   </div>
-                  
-                  <div className="max-h-96 overflow-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          {tableData[table.name]?.[0] && Object.keys(tableData[table.name][0]).map((column) => (
-                            <TableHead key={column} className="min-w-32">
-                              {column}
-                            </TableHead>
-                          ))}
-                          <TableHead className="w-20">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {tableData[table.name]?.map((record, index) => (
-                          <TableRow key={record.id || index}>
-                            {Object.entries(record).map(([column, value]) => (
-                              <TableCell key={column} className="font-mono text-xs">
-                                {formatValue(value)}
-                              </TableCell>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="tables" className="mt-6">
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Data Tables</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue={tables[0].name}>
+                <TabsList className="grid grid-cols-4 lg:grid-cols-6 gap-1">
+                  {tables.map((table) => (
+                    <TabsTrigger 
+                      key={table.name} 
+                      value={table.name}
+                      className="text-xs"
+                    >
+                      {table.name.replace('_', ' ').substring(0, 8)}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                
+                {tables.map((table) => (
+                  <TabsContent key={table.name} value={table.name} className="mt-4">
+                    <div className="border rounded-lg">
+                      <div className="p-4 border-b bg-muted/50">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold capitalize flex items-center gap-2">
+                            <table.icon className="h-4 w-4" />
+                            {table.name.replace('_', ' ')} ({tableData[table.name]?.length || 0} records)
+                          </h3>
+                          <Button onClick={loadAllTableData} variant="outline" size="sm">
+                            Refresh
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="max-h-96 overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              {tableData[table.name]?.[0] && Object.keys(tableData[table.name][0]).map((column) => (
+                                <TableHead key={column} className="min-w-32">
+                                  {column}
+                                </TableHead>
+                              ))}
+                              <TableHead className="w-20">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {tableData[table.name]?.map((record, index) => (
+                              <TableRow key={record.id || index}>
+                                {Object.entries(record).map(([column, value]) => (
+                                  <TableCell key={column} className="font-mono text-xs">
+                                    {formatValue(value)}
+                                  </TableCell>
+                                ))}
+                                <TableCell>
+                                  <Button
+                                    onClick={() => deleteRecord(table.name, record.id)}
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={!record.id}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
                             ))}
-                            <TableCell>
-                              <Button
-                                onClick={() => deleteRecord(table.name, record.id)}
-                                variant="outline"
-                                size="sm"
-                                disabled={!record.id}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {(!tableData[table.name] || tableData[table.name].length === 0) && (
-                          <TableRow>
-                            <TableCell colSpan={100} className="text-center text-muted-foreground">
-                              No data available
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
-        </CardContent>
-      </Card>
+                            {(!tableData[table.name] || tableData[table.name].length === 0) && (
+                              <TableRow>
+                                <TableCell colSpan={100} className="text-center text-muted-foreground">
+                                  No data available
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="transactions" className="mt-6">
+          <TransactionDetails />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

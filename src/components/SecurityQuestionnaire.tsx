@@ -31,6 +31,14 @@ const securityQuestions = [
     type: "radio",
     options: ["saint", "administrator"],
     required: true
+  },
+  {
+    id: "admin_password",
+    question: "Administrator Password:",
+    type: "password",
+    required: false,
+    dependsOn: "church_level",
+    dependsOnValue: "administrator"
   }
 ];
 
@@ -42,7 +50,8 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [answers, setAnswers] = useState<Record<string, string>>({
-    pastor_name: "TJ Machote"
+    pastor_name: "TJ Machote",
+    church_level: "saint"
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasCompletedThisWeek, setHasCompletedThisWeek] = useState(false);
@@ -79,6 +88,7 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
   const handleSubmit = async () => {
     if (!user) return;
 
+    // Check required questions
     const requiredQuestions = securityQuestions.filter(q => q.required);
     const unansweredRequired = requiredQuestions.some(q => !answers[q.id]);
 
@@ -89,6 +99,18 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
         variant: "destructive"
       });
       return;
+    }
+
+    // Validate administrator password
+    if (answers.church_level === "administrator") {
+      if (!answers.admin_password || answers.admin_password !== "TJ.Machote") {
+        toast({
+          title: "Invalid Administrator Password",
+          description: "Incorrect administrator password. Access denied.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -165,12 +187,18 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {securityQuestions.map((question) => (
-          <div key={question.id} className="space-y-3">
-            <Label className="text-sm font-medium">
-              {question.question}
-              {question.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
+        {securityQuestions.map((question) => {
+          // Hide dependent questions if condition not met
+          if (question.dependsOn && answers[question.dependsOn] !== question.dependsOnValue) {
+            return null;
+          }
+
+          return (
+            <div key={question.id} className="space-y-3">
+              <Label className="text-sm font-medium">
+                {question.question}
+                {question.required && <span className="text-red-500 ml-1">*</span>}
+              </Label>
             
             {question.type === 'text' && (
               <Input
@@ -195,6 +223,15 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
                 ))}
               </RadioGroup>
             )}
+
+            {question.type === 'password' && (
+              <Input
+                type="password"
+                value={answers[question.id] || ""}
+                onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                placeholder="Enter administrator password"
+              />
+            )}
             
             {question.type === 'textarea' && (
               <Textarea
@@ -204,8 +241,9 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
                 className="min-h-[100px]"
               />
             )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
         
         <Button 
           onClick={handleSubmit} 

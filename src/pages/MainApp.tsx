@@ -1,9 +1,71 @@
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Index from "./Index";
 import VideoStream from "@/components/VideoStream";
 import AdminMonitoring from "@/components/AdminMonitoring";
+import LiveStreamViewer from "@/components/LiveStreamViewer";
 
 const MainApp = () => {
+  const { user } = useAuth();
+  const [userLevel, setUserLevel] = useState<string>("saint");
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      getUserLevel();
+      checkAdminStatus();
+    }
+  }, [user]);
+
+  const getUserLevel = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('security_questionnaires')
+        .select('church_level')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (data && !error) {
+        setUserLevel(data.church_level);
+      }
+    } catch (error) {
+      console.error('Error getting user level:', error);
+    }
+  };
+
+  const checkAdminStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase.rpc('is_admin', {
+        _user_id: user.id
+      });
+      if (!error) {
+        setIsAdmin(data);
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+    }
+  };
+
+  // Saint level users see only live streams
+  if (userLevel === "saint") {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto py-6">
+          <LiveStreamViewer />
+        </div>
+      </div>
+    );
+  }
+
+  // Administrator level users see full interface
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-6">
@@ -16,7 +78,10 @@ const MainApp = () => {
           </TabsList>
           
           <TabsContent value="home" className="mt-6">
-            <Index />
+            <div className="space-y-6">
+              <Index />
+              <LiveStreamViewer />
+            </div>
           </TabsContent>
           
           <TabsContent value="live" className="mt-6">
