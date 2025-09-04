@@ -2,9 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import SecurityQuestionnaire from "./SecurityQuestionnaire";
-import AdminUserManagement from "./AdminUserManagement";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield, AlertTriangle } from "lucide-react";
 
 interface SecurityWrapperProps {
@@ -97,22 +95,7 @@ const SecurityWrapper = ({ children }: SecurityWrapperProps) => {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="container mx-auto py-8">
-          {isAdmin ? (
-            <Tabs defaultValue="questionnaire" className="max-w-4xl mx-auto">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="questionnaire">Security Check</TabsTrigger>
-                <TabsTrigger value="admin">User Management</TabsTrigger>
-              </TabsList>
-              <TabsContent value="questionnaire" className="mt-6">
-                <SecurityQuestionnaire onComplete={handleQuestionnaireComplete} />
-              </TabsContent>
-              <TabsContent value="admin" className="mt-6">
-                <AdminUserManagement />
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <SecurityQuestionnaire onComplete={handleQuestionnaireComplete} />
-          )}
+          <SecurityQuestionnaire onComplete={handleQuestionnaireComplete} />
         </div>
       </div>
     );

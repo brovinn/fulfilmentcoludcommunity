@@ -9,7 +9,9 @@ import { InternationalDonationForm } from "@/components";
 import { CommunityChat } from "@/components/CommunityChat";
 import ReelsFeed from "@/components/ReelsFeed";
 import CommentModal from "@/components/CommentModal";
-import SecurityWrapper from "@/components/SecurityWrapper";
+import VideoStream from "@/components/VideoStream";
+import AdminMonitoring from "@/components/AdminMonitoring";
+import LiveStreamViewer from "@/components/LiveStreamViewer";
 import Auth from "./Auth";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +39,7 @@ interface ContentItem {
 const Index = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [content, setContent] = useState<{ [key: string]: ContentItem[] }>({
     home: [],
     projects: [],
@@ -56,8 +59,24 @@ const Index = () => {
     loadContent();
     if (user) {
       loadLikes();
+      checkAdminStatus();
     }
   }, [user]);
+
+  const checkAdminStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase.rpc('is_admin', {
+        _user_id: user.id
+      });
+      if (!error) {
+        setIsAdmin(data);
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+    }
+  };
 
   const loadContent = async () => {
     try {
@@ -377,7 +396,6 @@ const Index = () => {
   }
 
   return (
-    <SecurityWrapper>
       <div className="min-h-screen bg-background" style={{
         backgroundImage: "url('/lovable-uploads/caf7ba3d-0c2a-4ed0-af59-329e325e12fb.png')",
         backgroundSize: "200px",
@@ -430,13 +448,15 @@ const Index = () => {
         {/* Main Content */}
         <main className="container mx-auto px-4 py-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-8' : 'grid-cols-6'}`}>
               <TabsTrigger value="home">Home</TabsTrigger>
               <TabsTrigger value="projects">Projects</TabsTrigger>
               <TabsTrigger value="updates">Updates</TabsTrigger>
               <TabsTrigger value="posts">Chat</TabsTrigger>
               <TabsTrigger value="history">History</TabsTrigger>
               <TabsTrigger value="contribute">Contribute</TabsTrigger>
+              {isAdmin && <TabsTrigger value="livestream">Live Stream</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="monitoring">Admin Monitor</TabsTrigger>}
             </TabsList>
 
             {/* Home Tab - Reels Feed */}
@@ -478,6 +498,17 @@ const Index = () => {
                 </Card>
               )}
               
+              {/* Live Stream Viewer for all users */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Live Stream</CardTitle>
+                  <CardDescription>Watch live community events and broadcasts</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <LiveStreamViewer />
+                </CardContent>
+              </Card>
+
               {/* Reels Feed */}
               <ReelsFeed onCommentClick={handleCommentClick} />
             </TabsContent>
@@ -760,6 +791,30 @@ const Index = () => {
                 </Card>
               )}
             </TabsContent>
+
+            {/* Live Stream Tab - Admin Only */}
+            {isAdmin && (
+              <TabsContent value="livestream" className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-semibold">Live Stream Management</h2>
+                </div>
+                <VideoStream />
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-4">Live Stream Viewer</h3>
+                  <LiveStreamViewer />
+                </div>
+              </TabsContent>
+            )}
+
+            {/* Admin Monitoring Tab - Admin Only */}
+            {isAdmin && (
+              <TabsContent value="monitoring" className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-semibold">Admin Monitoring</h2>
+                </div>
+                <AdminMonitoring />
+              </TabsContent>
+            )}
           </Tabs>
 
         </main>
@@ -771,7 +826,6 @@ const Index = () => {
           contentId={selectedContentId || ''}
         />
       </div>
-    </SecurityWrapper>
   );
 };
 
