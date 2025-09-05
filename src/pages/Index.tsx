@@ -12,6 +12,7 @@ import CommentModal from "@/components/CommentModal";
 import VideoStream from "@/components/VideoStream";
 import AdminMonitoring from "@/components/AdminMonitoring";
 import LiveStreamViewer from "@/components/LiveStreamViewer";
+import LiveStreamRecorder from "@/components/LiveStreamRecorder";
 import Auth from "./Auth";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -498,16 +499,20 @@ const Index = () => {
                 </Card>
               )}
               
-              {/* Live Stream Viewer for all users */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Live Stream</CardTitle>
-                  <CardDescription>Watch live community events and broadcasts</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <LiveStreamViewer />
-                </CardContent>
-              </Card>
+              {/* Live Stream Viewer and Recorder for all users */}
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Live Stream</CardTitle>
+                    <CardDescription>Watch live community events and broadcasts</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <LiveStreamViewer />
+                  </CardContent>
+                </Card>
+                
+                <LiveStreamRecorder />
+              </div>
 
               {/* Reels Feed */}
               <ReelsFeed onCommentClick={handleCommentClick} />

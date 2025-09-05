@@ -22,7 +22,7 @@ const securityQuestions = [
     id: "pastor_name",
     question: "Pastor's name:",
     type: "text",
-    defaultValue: "TJ Machote",
+    defaultValue: "T.J Machote",
     readonly: true
   },
   {
@@ -50,7 +50,7 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [answers, setAnswers] = useState<Record<string, string>>({
-    pastor_name: "TJ Machote",
+    pastor_name: "T.J Machote",
     church_level: "saint"
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,6 +88,11 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
   const handleSubmit = async () => {
     if (!user) return;
 
+    // Ensure pastor name is set
+    if (!answers.pastor_name) {
+      setAnswers(prev => ({ ...prev, pastor_name: "T.J Machote" }));
+    }
+
     // Check required questions
     const requiredQuestions = securityQuestions.filter(q => q.required);
     const unansweredRequired = requiredQuestions.some(q => !answers[q.id]);
@@ -103,7 +108,7 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
 
     // Validate administrator password
     if (answers.church_level === "administrator") {
-      if (!answers.admin_password || answers.admin_password !== "TJ.Machote") {
+      if (!answers.admin_password || answers.admin_password !== "1369") {
         toast({
           title: "Invalid Administrator Password",
           description: "Incorrect administrator password. Access denied.",
@@ -125,7 +130,7 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
         .insert({
           user_id: user.id,
           user_name: answers.user_name,
-          pastor_name: answers.pastor_name || "TJ Machote",
+          pastor_name: answers.pastor_name || "T.J Machote",
           church_level: answers.church_level,
           week_number: weekNumber,
           year: year
@@ -229,7 +234,7 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
                 type="password"
                 value={answers[question.id] || ""}
                 onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                placeholder="Enter administrator password"
+                placeholder=""
               />
             )}
             
@@ -245,13 +250,68 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
           );
         })}
         
-        <Button 
-          onClick={handleSubmit} 
-          disabled={isSubmitting}
-          className="w-full"
-        >
-          {isSubmitting ? "Submitting..." : "Submit Security Questionnaire"}
-        </Button>
+        <div className="flex gap-4">
+          <Button 
+            onClick={async () => {
+              const saintAnswers = { 
+                ...answers, 
+                church_level: "saint",
+                pastor_name: "T.J Machote",
+                user_name: answers.user_name || "Guest User"
+              };
+              setAnswers(saintAnswers);
+              
+              setIsSubmitting(true);
+              try {
+                const now = new Date();
+                const weekNumber = Math.ceil(now.getTime() / (1000 * 60 * 60 * 24 * 7));
+                const year = now.getFullYear();
+
+                const { error } = await supabase
+                  .from('security_questionnaires')
+                  .insert({
+                    user_id: user.id,
+                    user_name: saintAnswers.user_name,
+                    pastor_name: saintAnswers.pastor_name,
+                    church_level: saintAnswers.church_level,
+                    week_number: weekNumber,
+                    year: year
+                  });
+
+                if (error) throw error;
+
+                toast({
+                  title: "Welcome Saint",
+                  description: "You have been granted saint level access.",
+                });
+
+                setHasCompletedThisWeek(true);
+                onComplete?.();
+              } catch (error) {
+                console.error('Error submitting questionnaire:', error);
+                toast({
+                  title: "Submission Failed",
+                  description: "Failed to submit questionnaire. Please try again.",
+                  variant: "destructive"
+                });
+              } finally {
+                setIsSubmitting(false);
+              }
+            }}
+            variant="outline"
+            className="flex-1"
+            disabled={isSubmitting}
+          >
+            Continue as Saint
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting}
+            className="flex-1"
+          >
+            {isSubmitting ? "Submitting..." : "Submit Security Questionnaire"}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
