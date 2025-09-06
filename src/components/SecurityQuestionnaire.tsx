@@ -22,8 +22,7 @@ const securityQuestions = [
     id: "pastor_name",
     question: "Pastor's name:",
     type: "text",
-    defaultValue: "T.J Machote",
-    readonly: true
+    required: true
   },
   {
     id: "church_level",
@@ -50,7 +49,6 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [answers, setAnswers] = useState<Record<string, string>>({
-    pastor_name: "T.J Machote",
     church_level: "saint"
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,11 +86,6 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
   const handleSubmit = async () => {
     if (!user) return;
 
-    // Ensure pastor name is set
-    if (!answers.pastor_name) {
-      setAnswers(prev => ({ ...prev, pastor_name: "T.J Machote" }));
-    }
-
     // Check required questions
     const requiredQuestions = securityQuestions.filter(q => q.required);
     const unansweredRequired = requiredQuestions.some(q => !answers[q.id]);
@@ -101,6 +94,16 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
       toast({
         title: "Incomplete Form",
         description: "Please answer all required questions.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate pastor name
+    if (answers.pastor_name !== "T.J Machote") {
+      toast({
+        title: "Invalid Pastor Name",
+        description: "Pastor name must be T.J Machote. Access denied.",
         variant: "destructive"
       });
       return;
@@ -125,16 +128,16 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
       const weekNumber = Math.ceil(now.getTime() / (1000 * 60 * 60 * 24 * 7));
       const year = now.getFullYear();
 
-      const { error } = await supabase
-        .from('security_questionnaires')
-        .insert({
-          user_id: user.id,
-          user_name: answers.user_name,
-          pastor_name: answers.pastor_name || "T.J Machote",
-          church_level: answers.church_level,
-          week_number: weekNumber,
-          year: year
-        });
+        const { error } = await supabase
+          .from('security_questionnaires')
+          .insert({
+            user_id: user.id,
+            user_name: answers.user_name,
+            pastor_name: "T.J Machote",
+            church_level: answers.church_level,
+            week_number: weekNumber,
+            year: year
+          });
 
       if (error) throw error;
 
@@ -207,11 +210,9 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
             
             {question.type === 'text' && (
               <Input
-                value={answers[question.id] || question.defaultValue || ""}
+                value={answers[question.id] || ""}
                 onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                placeholder={`Enter ${question.question.toLowerCase()}`}
-                readOnly={question.readonly}
-                className={question.readonly ? "bg-gray-100" : ""}
+                placeholder=""
               />
             )}
 
@@ -271,9 +272,9 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
                   .from('security_questionnaires')
                   .insert({
                     user_id: user.id,
-                    user_name: saintAnswers.user_name,
-                    pastor_name: saintAnswers.pastor_name,
-                    church_level: saintAnswers.church_level,
+                    user_name: saintAnswers.user_name || "Guest User",
+                    pastor_name: "T.J Machote",
+                    church_level: "saint",
                     week_number: weekNumber,
                     year: year
                   });
