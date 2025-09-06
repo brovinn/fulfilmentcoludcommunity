@@ -128,7 +128,31 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
       const weekNumber = Math.ceil(now.getTime() / (1000 * 60 * 60 * 24 * 7));
       const year = now.getFullYear();
 
-        const { error } = await supabase
+      // Try to update existing record first, then insert if not exists
+      const { data: existingData } = await supabase
+        .from('security_questionnaires')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('week_number', weekNumber)
+        .eq('year', year)
+        .maybeSingle();
+
+      let error;
+      if (existingData) {
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from('security_questionnaires')
+          .update({
+            user_name: answers.user_name,
+            pastor_name: "T.J Machote",
+            church_level: answers.church_level,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', existingData.id);
+        error = updateError;
+      } else {
+        // Insert new record
+        const { error: insertError } = await supabase
           .from('security_questionnaires')
           .insert({
             user_id: user.id,
@@ -138,6 +162,8 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
             week_number: weekNumber,
             year: year
           });
+        error = insertError;
+      }
 
       if (error) throw error;
 
@@ -268,16 +294,42 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
                 const weekNumber = Math.ceil(now.getTime() / (1000 * 60 * 60 * 24 * 7));
                 const year = now.getFullYear();
 
-                const { error } = await supabase
+                // Try to update existing record first, then insert if not exists
+                const { data: existingData } = await supabase
                   .from('security_questionnaires')
-                  .insert({
-                    user_id: user.id,
-                    user_name: saintAnswers.user_name || "Guest User",
-                    pastor_name: "T.J Machote",
-                    church_level: "saint",
-                    week_number: weekNumber,
-                    year: year
-                  });
+                  .select('id')
+                  .eq('user_id', user.id)
+                  .eq('week_number', weekNumber)
+                  .eq('year', year)
+                  .maybeSingle();
+
+                let error;
+                if (existingData) {
+                  // Update existing record
+                  const { error: updateError } = await supabase
+                    .from('security_questionnaires')
+                    .update({
+                      user_name: saintAnswers.user_name || "Guest User",
+                      pastor_name: "T.J Machote",
+                      church_level: "saint",
+                      completed_at: new Date().toISOString()
+                    })
+                    .eq('id', existingData.id);
+                  error = updateError;
+                } else {
+                  // Insert new record
+                  const { error: insertError } = await supabase
+                    .from('security_questionnaires')
+                    .insert({
+                      user_id: user.id,
+                      user_name: saintAnswers.user_name || "Guest User",
+                      pastor_name: "T.J Machote",
+                      church_level: "saint",
+                      week_number: weekNumber,
+                      year: year
+                    });
+                  error = insertError;
+                }
 
                 if (error) throw error;
 
