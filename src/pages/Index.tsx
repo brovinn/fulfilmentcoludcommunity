@@ -41,6 +41,7 @@ const Index = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userLevel, setUserLevel] = useState<string>("saint");
   const [content, setContent] = useState<{ [key: string]: ContentItem[] }>({
     home: [],
     projects: [],
@@ -61,8 +62,31 @@ const Index = () => {
     if (user) {
       loadLikes();
       checkAdminStatus();
+      getUserLevel();
     }
   }, [user]);
+
+  const getUserLevel = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('security_questionnaires')
+        .select('church_level')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (data && !error) {
+        setUserLevel(data.church_level);
+        // Set admin based on church level
+        setIsAdmin(data.church_level === 'administrator');
+      }
+    } catch (error) {
+      console.error('Error getting user level:', error);
+    }
+  };
 
   const checkAdminStatus = async () => {
     if (!user) return;
@@ -71,8 +95,8 @@ const Index = () => {
       const { data, error } = await supabase.rpc('is_admin', {
         _user_id: user.id
       });
-      if (!error) {
-        setIsAdmin(data);
+      if (!error && data) {
+        setIsAdmin(true);
       }
     } catch (error) {
       console.error('Error checking admin status:', error);
