@@ -99,16 +99,6 @@ const SecurityQuestionnaire = ({ onComplete }: SecurityQuestionnaireProps) => {
       return;
     }
 
-    // Validate pastor name
-    if (answers.pastor_name !== "T.J Machote") {
-      toast({
-        title: "Invalid Pastor Name",
-        description: "Pastor name must be T.J Machote. Access denied.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     // Validate administrator password
     if (answers.church_level === "administrator") {
       if (!answers.admin_password || answers.admin_password !== "1369") {
