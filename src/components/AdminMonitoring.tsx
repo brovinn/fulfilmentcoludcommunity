@@ -180,9 +180,11 @@ const AdminMonitoring = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">Database Overview</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="tables">Data Tables</TabsTrigger>
+          <TabsTrigger value="users">User Management</TabsTrigger>
+          <TabsTrigger value="moderation">Content Moderation</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
         </TabsList>
         
@@ -291,6 +293,226 @@ const AdminMonitoring = () => {
                   </TabsContent>
                 ))}
               </Tabs>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="users" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                User Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{tableData['profiles']?.length || 0}</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Administrators</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {tableData['user_roles']?.filter(r => r.role === 'admin')?.length || 0}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Security Checks</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{tableData['security_questionnaires']?.length || 0}</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="border rounded-lg">
+                  <div className="max-h-96 overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>User ID</TableHead>
+                          <TableHead>Display Name</TableHead>
+                          <TableHead>Avatar</TableHead>
+                          <TableHead>Bio</TableHead>
+                          <TableHead>Created At</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tableData['profiles']?.map((profile) => (
+                          <TableRow key={profile.id}>
+                            <TableCell className="font-mono text-xs">{profile.user_id?.substring(0, 8)}...</TableCell>
+                            <TableCell>{profile.display_name || 'N/A'}</TableCell>
+                            <TableCell>
+                              {profile.avatar_url ? (
+                                <img src={profile.avatar_url} alt="Avatar" className="h-8 w-8 rounded-full" />
+                              ) : (
+                                <div className="h-8 w-8 rounded-full bg-muted" />
+                              )}
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate">{profile.bio || 'N/A'}</TableCell>
+                            <TableCell className="text-xs">{new Date(profile.created_at).toLocaleDateString()}</TableCell>
+                          </TableRow>
+                        ))}
+                        {(!tableData['profiles'] || tableData['profiles'].length === 0) && (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground">
+                              No users found
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="moderation" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Content Moderation
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Total Content</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{tableData['content']?.length || 0}</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Comments</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{tableData['comments']?.length || 0}</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Messages</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{tableData['messages']?.length || 0}</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Moderation Logs</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{tableData['content_moderation_log']?.length || 0}</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="border rounded-lg">
+                  <div className="p-4 border-b bg-muted/50">
+                    <h3 className="font-semibold">Recent Content</h3>
+                  </div>
+                  <div className="max-h-96 overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tableData['content']?.slice(0, 10).map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell>
+                              <Badge variant="outline">{item.tab_type}</Badge>
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate">{item.title}</TableCell>
+                            <TableCell>
+                              <Badge variant={item.status === 'active' ? 'default' : 'secondary'}>
+                                {item.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">{new Date(item.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <Button
+                                onClick={() => deleteRecord('content', item.id)}
+                                variant="outline"
+                                size="sm"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {(!tableData['content'] || tableData['content'].length === 0) && (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground">
+                              No content found
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+
+                <div className="border rounded-lg">
+                  <div className="p-4 border-b bg-muted/50">
+                    <h3 className="font-semibold">Moderation History</h3>
+                  </div>
+                  <div className="max-h-96 overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Action</TableHead>
+                          <TableHead>Target Table</TableHead>
+                          <TableHead>Reason</TableHead>
+                          <TableHead>Date</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tableData['content_moderation_log']?.slice(0, 10).map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell>
+                              <Badge variant="destructive">{log.action_type}</Badge>
+                            </TableCell>
+                            <TableCell>{log.target_table}</TableCell>
+                            <TableCell className="max-w-xs truncate">{log.reason || 'N/A'}</TableCell>
+                            <TableCell className="text-xs">{new Date(log.created_at).toLocaleDateString()}</TableCell>
+                          </TableRow>
+                        ))}
+                        {(!tableData['content_moderation_log'] || tableData['content_moderation_log'].length === 0) && (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center text-muted-foreground">
+                              No moderation history
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Video, VideoOff, Square, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import LiveStreamRecorder from "./LiveStreamRecorder";
 
 interface VideoSession {
   id: string;
@@ -334,6 +335,8 @@ const VideoStream = () => {
           )}
         </CardContent>
       </Card>
+
+      <LiveStreamRecorder />
 
       <Card>
         <CardHeader>
