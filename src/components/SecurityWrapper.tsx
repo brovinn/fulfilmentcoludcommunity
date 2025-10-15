@@ -26,13 +26,8 @@ const SecurityWrapper = ({ children }: SecurityWrapperProps) => {
     if (!user) return;
 
     try {
-      // Check if user is allowed
-      const { data: allowedData, error: allowedError } = await supabase.rpc('is_user_allowed', {
-        _user_id: user.id
-      });
-
-      if (allowedError) throw allowedError;
-      setIsUserAllowed(allowedData);
+      // Allow all authenticated users
+      setIsUserAllowed(true);
 
       // Check if user is admin
       const { data: adminData, error: adminError } = await supabase.rpc('is_admin', {
@@ -42,13 +37,12 @@ const SecurityWrapper = ({ children }: SecurityWrapperProps) => {
       if (adminError) throw adminError;
       setIsAdmin(adminData);
 
-      // Only check questionnaire status if user is allowed
-      if (allowedData) {
-        const { data: questionnaireData, error: questionnaireError } = await supabase.rpc('get_current_week_questionnaire_status', {
-          _user_id: user.id
-        });
+      // Check questionnaire status (optional, doesn't block access)
+      const { data: questionnaireData, error: questionnaireError } = await supabase.rpc('get_current_week_questionnaire_status', {
+        _user_id: user.id
+      });
 
-        if (questionnaireError) throw questionnaireError;
+      if (!questionnaireError) {
         setHasCompletedWeeklyCheck(questionnaireData);
       }
     } catch (error) {
@@ -73,35 +67,7 @@ const SecurityWrapper = ({ children }: SecurityWrapperProps) => {
     );
   }
 
-  // If user is not allowed to access the site
-  if (isUserAllowed === false) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Alert className="max-w-md">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-center">
-            <strong>Access Denied</strong>
-            <br />
-            Your account does not have permission to access this website. 
-            Please contact an administrator for access.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  // If user hasn't completed weekly security check
-  if (hasCompletedWeeklyCheck === false) {
-    return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="container mx-auto py-8">
-          <SecurityQuestionnaire onComplete={handleQuestionnaireComplete} />
-        </div>
-      </div>
-    );
-  }
-
-  // User is allowed and has completed security check - show main app
+  // All authenticated users are allowed - show main app
   return <>{children}</>;
 };
 

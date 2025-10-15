@@ -19,6 +19,7 @@ import {
   Video
 } from "lucide-react";
 import TransactionDetails from "./TransactionDetails";
+import AdminUserAccounts from "./AdminUserAccounts";
 
 interface TableData {
   [key: string]: any;
@@ -180,10 +181,11 @@ const AdminMonitoring = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="tables">Data Tables</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
+          <TabsTrigger value="accounts">User Accounts</TabsTrigger>
           <TabsTrigger value="moderation">Content Moderation</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
         </TabsList>
@@ -378,6 +380,10 @@ const AdminMonitoring = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="accounts" className="mt-6">
+          <AdminUserAccounts />
         </TabsContent>
 
         <TabsContent value="moderation" className="mt-6">
