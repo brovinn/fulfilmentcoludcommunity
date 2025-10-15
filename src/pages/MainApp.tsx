@@ -6,6 +6,8 @@ import Index from "./Index";
 import VideoStream from "@/components/VideoStream";
 import AdminMonitoring from "@/components/AdminMonitoring";
 import LiveStreamViewer from "@/components/LiveStreamViewer";
+import LiveStreamWithControls from "@/components/LiveStreamWithControls";
+import ContentManagement from "@/components/ContentManagement";
 
 const MainApp = () => {
   const { user } = useAuth();
@@ -70,9 +72,10 @@ const MainApp = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-6">
         <Tabs defaultValue="home" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="home">Home</TabsTrigger>
             <TabsTrigger value="live">Live Stream</TabsTrigger>
+            <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="contribute">Contribute</TabsTrigger>
             <TabsTrigger value="monitoring">Admin Monitor</TabsTrigger>
           </TabsList>
@@ -85,7 +88,14 @@ const MainApp = () => {
           </TabsContent>
           
           <TabsContent value="live" className="mt-6">
-            <VideoStream />
+            <div className="space-y-6">
+              {isAdmin && <LiveStreamWithControls isHost={true} title="Administrator Live Stream" />}
+              <VideoStream />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="content" className="mt-6">
+            <ContentManagement />
           </TabsContent>
           
           <TabsContent value="contribute" className="mt-6">

@@ -34,7 +34,7 @@ enable_signup = true
 enable_confirmations = false
 
 [functions.comment-system]
-verify_jwt = false
+verify_jwt = true
 
 [functions.facebook-import]
-verify_jwt = false
+verify_jwt = true

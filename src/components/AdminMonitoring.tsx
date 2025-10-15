@@ -169,9 +169,14 @@ const AdminMonitoring = () => {
       <Card>
         <CardContent className="p-6">
           <div className="text-center">
-            <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
-            <p className="text-muted-foreground">Administrator access required</p>
+            <Shield className="h-12 w-12 mx-auto mb-4 text-destructive" />
+            <h3 className="text-lg font-semibold mb-2">Administrator Access Required</h3>
+            <p className="text-muted-foreground mb-4">
+              You need administrator privileges to access this panel.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Contact your system administrator to request access.
+            </p>
           </div>
         </CardContent>
       </Card>
