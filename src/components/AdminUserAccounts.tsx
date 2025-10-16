@@ -4,9 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Users, Shield, Mail, Calendar, User } from "lucide-react";
+import { Loader2, Users, Shield, Calendar, User, UserCog } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface UserAccount {
   id: string;
@@ -25,6 +36,8 @@ const AdminUserAccounts = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserAccount[]>([]);
+  const [selectedUser, setSelectedUser] = useState<{ id: string; displayName: string; role: string } | null>(null);
+  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
 
   useEffect(() => {
     checkAdminAndLoadUsers();
@@ -93,6 +106,39 @@ const AdminUserAccounts = () => {
     }
   };
 
+  const toggleAdminRole = async (userId: string, displayName: string, currentRole: string) => {
+    const newRole = currentRole === 'admin' ? 'user' : 'admin';
+    
+    try {
+      if (newRole === 'admin') {
+        // Add admin role
+        const { error } = await supabase
+          .from('user_roles')
+          .insert({ user_id: userId, role: 'admin' });
+        
+        if (error) throw error;
+      } else {
+        // Remove admin role
+        const { error } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', userId)
+          .eq('role', 'admin');
+        
+        if (error) throw error;
+      }
+
+      toast.success(`${displayName} is now ${newRole === 'admin' ? 'an admin' : 'a regular user'}.`);
+      await loadUsers();
+    } catch (error) {
+      console.error('Error updating role:', error);
+      toast.error('Failed to update user role.');
+    } finally {
+      setIsRoleDialogOpen(false);
+      setSelectedUser(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Never';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -142,10 +188,10 @@ const AdminUserAccounts = () => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                User Accounts
+                User Accounts & Role Management
               </CardTitle>
               <CardDescription>
-                All registered users and their account details
+                Manage user accounts and grant admin privileges
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-lg">
@@ -163,12 +209,13 @@ const AdminUserAccounts = () => {
                   <TableHead>Role</TableHead>
                   <TableHead>Joined</TableHead>
                   <TableHead>User ID</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       No users found
                     </TableCell>
                   </TableRow>
@@ -207,6 +254,23 @@ const AdminUserAccounts = () => {
                       <TableCell className="font-mono text-xs text-muted-foreground">
                         {userAccount.id.slice(0, 8)}...
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser({ 
+                              id: userAccount.id, 
+                              displayName: userAccount.profile?.display_name || 'User',
+                              role: userAccount.role || 'user'
+                            });
+                            setIsRoleDialogOpen(true);
+                          }}
+                        >
+                          <UserCog className="h-4 w-4 mr-2" />
+                          {userAccount.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -215,6 +279,30 @@ const AdminUserAccounts = () => {
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {selectedUser?.role === 'admin' ? 'Remove Admin Role' : 'Grant Admin Role'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedUser?.role === 'admin' 
+                ? `Are you sure you want to remove admin privileges from ${selectedUser?.displayName}? They will no longer have access to admin features.`
+                : `Are you sure you want to grant admin privileges to ${selectedUser?.displayName}? They will have full access to all admin features including content management and user administration.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedUser && toggleAdminRole(selectedUser.id, selectedUser.displayName, selectedUser.role)}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
