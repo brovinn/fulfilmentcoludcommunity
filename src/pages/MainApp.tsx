@@ -8,7 +8,6 @@ import AdminMonitoring from "@/components/AdminMonitoring";
 import LiveStreamViewer from "@/components/LiveStreamViewer";
 import LiveStreamWithControls from "@/components/LiveStreamWithControls";
 import ContentManagement from "@/components/ContentManagement";
-import { ContributeTab } from "@/components/ContributeTab";
 
 const MainApp = () => {
   const { user } = useAuth();
@@ -94,7 +93,10 @@ const MainApp = () => {
             </TabsContent>
             
             <TabsContent value="contribute" className="mt-6">
-              <ContributeTab />
+              <div className="text-center p-8">
+                <h2 className="text-2xl font-bold mb-4">Contribute</h2>
+                <p className="text-muted-foreground">Contribution features will be available here</p>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
@@ -134,7 +136,10 @@ const MainApp = () => {
           </TabsContent>
           
           <TabsContent value="contribute" className="mt-6">
-            <ContributeTab />
+            <div className="text-center p-8">
+              <h2 className="text-2xl font-bold mb-4">Contribute</h2>
+              <p className="text-muted-foreground">Contribution features will be available here</p>
+            </div>
           </TabsContent>
           
           {isAdmin && (
