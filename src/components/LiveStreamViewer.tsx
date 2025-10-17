@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Video, Users } from "lucide-react";
+import ExpandableLiveStream from "./ExpandableLiveStream";
 
 interface VideoSession {
   id: string;
@@ -114,40 +115,17 @@ const LiveStreamViewer = () => {
             <p className="text-muted-foreground">There are no active live streams at the moment.</p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-4">
             {liveStreams.map((stream) => (
-              <Card key={stream.id} className="border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-950/20">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-sm truncate">{stream.title}</h4>
-                    <Badge variant="destructive" className="text-xs">
-                      LIVE
-                    </Badge>
-                  </div>
-                  {stream.profiles?.display_name && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Users className="h-3 w-3" />
-                      {stream.profiles.display_name}
-                    </div>
-                  )}
-                </CardHeader>
-                <CardContent className="pt-0">
-                  {stream.description && (
-                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                      {stream.description}
-                    </p>
-                  )}
-                  <div className="aspect-video bg-black rounded-lg flex items-center justify-center">
-                    <div className="text-white text-center">
-                      <Video className="h-8 w-8 mx-auto mb-2" />
-                      <p className="text-sm">Live Stream Active</p>
-                      <p className="text-xs opacity-75">
-                        Started: {new Date(stream.started_at).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <ExpandableLiveStream
+                key={stream.id}
+                sessionId={stream.id}
+                title={stream.title}
+                description={stream.description}
+                creatorName={stream.profiles?.display_name || "Unknown User"}
+                startedAt={stream.started_at}
+                streamUrl={stream.recording_url}
+              />
             ))}
           </div>
         )}

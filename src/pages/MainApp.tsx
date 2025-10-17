@@ -56,18 +56,55 @@ const MainApp = () => {
     }
   };
 
-  // Saint level users see only live streams
+  // Saint level users see limited interface
   if (userLevel === "saint") {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-6">
-          <LiveStreamViewer />
+          <Tabs defaultValue="home" className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="home">Home</TabsTrigger>
+              <TabsTrigger value="projects">Projects</TabsTrigger>
+              <TabsTrigger value="updates">Updates</TabsTrigger>
+              <TabsTrigger value="chat">Chat</TabsTrigger>
+              <TabsTrigger value="contribute">Contribute</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="home" className="mt-6">
+              <div className="space-y-6">
+                <Index />
+                <LiveStreamViewer />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="projects" className="mt-6">
+              <Index />
+            </TabsContent>
+            
+            <TabsContent value="updates" className="mt-6">
+              <Index />
+            </TabsContent>
+            
+            <TabsContent value="chat" className="mt-6">
+              <div className="text-center p-8">
+                <h2 className="text-2xl font-bold mb-4">Community Chat</h2>
+                <p className="text-muted-foreground">Chat features will be available here</p>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="contribute" className="mt-6">
+              <div className="text-center p-8">
+                <h2 className="text-2xl font-bold mb-4">Contribute</h2>
+                <p className="text-muted-foreground">Contribution features will be available here</p>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     );
   }
 
-  // Administrator level users see full interface
+  // Admin level users see full interface with Admin Monitor
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-6">
@@ -77,7 +114,7 @@ const MainApp = () => {
             <TabsTrigger value="live">Live Stream</TabsTrigger>
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="contribute">Contribute</TabsTrigger>
-            <TabsTrigger value="monitoring">Admin Monitor</TabsTrigger>
+            {isAdmin && <TabsTrigger value="monitoring">Admin Monitor</TabsTrigger>}
           </TabsList>
           
           <TabsContent value="home" className="mt-6">
@@ -105,9 +142,11 @@ const MainApp = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="monitoring" className="mt-6">
-            <AdminMonitoring />
-          </TabsContent>
+          {isAdmin && (
+            <TabsContent value="monitoring" className="mt-6">
+              <AdminMonitoring />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
