@@ -56,7 +56,7 @@ serve(async (req) => {
     const { action, tableName, recordId, reason } = await req.json();
 
     switch (action) {
-      case 'delete_content':
+      case 'delete_content': {
         // Delete any content and log the action
         const tables = ['content', 'comments', 'messages', 'donations', 'profiles'];
         
@@ -94,10 +94,11 @@ serve(async (req) => {
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
+      }
 
-      case 'get_all_data':
+      case 'get_all_data': {
         // Get normalized view of all data
-        const allData = {};
+        const allData: Record<string, unknown[]> = {};
         const dataQueries = [
           { table: 'profiles', query: 'id, user_id, display_name, created_at' },
           { table: 'content', query: 'id, title, user_id, tab_type, status, created_at' },
@@ -136,8 +137,9 @@ serve(async (req) => {
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
+      }
 
-      case 'get_transaction_details':
+      case 'get_transaction_details': {
         // Get transaction details from donations
         const { data: transactions, error: transError } = await supabase
           .from('donations')
@@ -177,6 +179,7 @@ serve(async (req) => {
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
+      }
 
       default:
         return new Response(JSON.stringify({ 
