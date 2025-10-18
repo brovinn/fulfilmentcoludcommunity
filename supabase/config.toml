@@ -33,6 +33,12 @@ jwt_expiry = 3600
 enable_signup = true
 enable_confirmations = false
 
+[functions.admin-monitoring]
+verify_jwt = true
+
+[functions.create-user]
+verify_jwt = true
+
 [functions.comment-system]
 verify_jwt = true
 

@@ -53,7 +53,27 @@ serve(async (req) => {
       });
     }
 
-    const { action, tableName, recordId, reason } = await req.json();
+    // Parse and validate request body
+    let action, tableName, recordId, reason;
+    try {
+      const body = await req.json();
+      action = body.action;
+      tableName = body.tableName;
+      recordId = body.recordId;
+      reason = body.reason;
+    } catch (e) {
+      return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!action) {
+      return new Response(JSON.stringify({ error: 'Action is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     switch (action) {
       case 'delete_content':
