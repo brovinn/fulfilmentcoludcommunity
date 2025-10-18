@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+console.log('Create-user function initialized');
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -13,10 +15,13 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Processing create-user request');
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase environment variables');
       return new Response(
         JSON.stringify({ error: 'Server configuration error' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -78,6 +83,7 @@ serve(async (req) => {
     }
 
     if (!email || !password) {
+      console.error('Missing email or password');
       return new Response(
         JSON.stringify({ error: 'Email and password are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -87,42 +93,61 @@ serve(async (req) => {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      console.error('Invalid email format:', email);
       return new Response(
         JSON.stringify({ error: 'Invalid email format' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create the user
+    // Validate password length (minimum 6 characters for Supabase)
+    if (password.length < 6) {
+      console.error('Password too short');
+      return new Response(
+        JSON.stringify({ error: 'Password must be at least 6 characters long' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Creating user with email:', email);
+
+    // Create the user with email already confirmed to allow immediate login
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
+      email_confirm: true, // Critical: This allows immediate login without email verification
       user_metadata: {
         display_name: displayName || email.split('@')[0]
       }
     })
 
     if (createError) {
+      console.error('User creation error:', createError);
       return new Response(
         JSON.stringify({ error: createError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Add role if specified (admin or moderator)
-    if (role && (role === 'admin' || role === 'moderator')) {
+    console.log('User created successfully:', newUser.user!.id);
+
+    // Add role if specified (admin, moderator, or user)
+    if (role && ['admin', 'moderator', 'user'].includes(role)) {
+      console.log('Adding role:', role);
       const { error: roleError } = await supabaseAdmin
         .from('user_roles')
         .insert({ user_id: newUser.user!.id, role });
 
       if (roleError) {
         console.error('Error adding role:', roleError);
-        // Log but don't fail the user creation
+        // Don't fail the user creation, but log the error
+      } else {
+        console.log('Role added successfully');
       }
     }
 
     // Create profile for the new user
+    console.log('Creating profile for user');
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .insert({ 
@@ -133,14 +158,30 @@ serve(async (req) => {
 
     if (profileError) {
       console.error('Error creating profile:', profileError);
+      // Profile creation failed but user was created - return partial success
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          warning: 'User created but profile creation failed',
+          user: {
+            id: newUser.user!.id,
+            email: newUser.user!.email
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
+
+    console.log('Profile created successfully');
+    console.log('User creation complete - user can now login');
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         user: {
           id: newUser.user!.id,
-          email: newUser.user!.email
+          email: newUser.user!.email,
+          email_confirmed: true // Indicate that email is confirmed for immediate login
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
