@@ -62,13 +62,14 @@ serve(async (req) => {
     }
 
     // Parse and validate request body
-    let email, password, displayName, role;
+    let email, password, displayName, role, avatarUrl;
     try {
       const body = await req.json();
       email = body.email;
       password = body.password;
       displayName = body.displayName;
       role = body.role;
+      avatarUrl = body.avatarUrl;
     } catch (e) {
       return new Response(
         JSON.stringify({ error: 'Invalid request body' }),
@@ -126,7 +127,8 @@ serve(async (req) => {
       .from('profiles')
       .insert({ 
         user_id: newUser.user!.id,
-        display_name: displayName || email.split('@')[0]
+        display_name: displayName || email.split('@')[0],
+        avatar_url: avatarUrl || null
       });
 
     if (profileError) {

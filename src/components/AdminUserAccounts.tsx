@@ -60,6 +60,7 @@ const AdminUserAccounts = () => {
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserDisplayName, setNewUserDisplayName] = useState('');
   const [newUserRole, setNewUserRole] = useState('user');
+  const [newUserAvatarUrl, setNewUserAvatarUrl] = useState('');
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   useEffect(() => {
@@ -175,7 +176,8 @@ const AdminUserAccounts = () => {
           email: newUserEmail,
           password: newUserPassword,
           displayName: newUserDisplayName || newUserEmail.split('@')[0],
-          role: newUserRole
+          role: newUserRole,
+          avatarUrl: newUserAvatarUrl || null
         }
       });
 
@@ -191,6 +193,7 @@ const AdminUserAccounts = () => {
       setNewUserPassword('');
       setNewUserDisplayName('');
       setNewUserRole('user');
+      setNewUserAvatarUrl('');
       await loadUsers();
     } catch (error: any) {
       console.error('Error creating user:', error);
@@ -413,6 +416,17 @@ const AdminUserAccounts = () => {
                 placeholder="Optional display name"
                 value={newUserDisplayName}
                 onChange={(e) => setNewUserDisplayName(e.target.value)}
+                disabled={isCreatingUser}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="avatarUrl">Profile Picture URL</Label>
+              <Input
+                id="avatarUrl"
+                type="url"
+                placeholder="https://example.com/avatar.jpg"
+                value={newUserAvatarUrl}
+                onChange={(e) => setNewUserAvatarUrl(e.target.value)}
                 disabled={isCreatingUser}
               />
             </div>
