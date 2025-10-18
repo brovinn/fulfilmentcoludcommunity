@@ -181,13 +181,22 @@ const AdminUserAccounts = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function invocation error:', error);
+        throw new Error('Failed to connect to user creation service');
+      }
 
-      if (data.error) {
+      // Check if the response contains an error
+      if (data && data.error) {
         throw new Error(data.error);
       }
 
-      toast.success(`User ${newUserEmail} created successfully!`);
+      // Check for success response
+      if (!data || !data.success) {
+        throw new Error('User creation failed - no success response');
+      }
+
+      toast.success(`User ${newUserEmail} created successfully and can now login!`);
       setIsCreateUserDialogOpen(false);
       setNewUserEmail('');
       setNewUserPassword('');
@@ -197,7 +206,8 @@ const AdminUserAccounts = () => {
       await loadUsers();
     } catch (error: any) {
       console.error('Error creating user:', error);
-      toast.error(error.message || 'Failed to create user');
+      const errorMessage = error.message || 'Failed to create user';
+      toast.error(errorMessage);
     } finally {
       setIsCreatingUser(false);
     }
