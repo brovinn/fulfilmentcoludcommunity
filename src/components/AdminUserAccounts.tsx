@@ -272,6 +272,10 @@ const AdminUserAccounts = () => {
               <Badge variant="outline" className="text-lg">
                 {users.length} Total Users
               </Badge>
+              <Badge variant="destructive" className="text-lg">
+                <Shield className="h-4 w-4 mr-1" />
+                {users.filter(u => u.role === 'admin').length} Admins
+              </Badge>
               <Button onClick={() => setIsCreateUserDialogOpen(true)}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add User
