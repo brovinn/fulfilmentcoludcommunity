@@ -301,7 +301,10 @@ const AdminUserAccounts = () => {
                   </TableRow>
                 ) : (
                   users.map((userAccount) => (
-                    <TableRow key={userAccount.id}>
+                    <TableRow 
+                      key={userAccount.id}
+                      className={userAccount.role === 'admin' ? 'bg-destructive/5 border-l-4 border-l-destructive' : ''}
+                    >
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {userAccount.profile?.avatar_url ? (
