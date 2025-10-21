@@ -9,6 +9,7 @@ import { PaymentMethodSelector } from "@/components/PaymentMethodSelector";
 import { CommunityChat } from "@/components/CommunityChat";
 import ReelsFeed from "@/components/ReelsFeed";
 import CommentModal from "@/components/CommentModal";
+import { StoryFeed } from "@/components/StoryFeed";
 import VideoStream from "@/components/VideoStream";
 import AdminMonitoring from "@/components/AdminMonitoring";
 import LiveStreamViewer from "@/components/LiveStreamViewer";
@@ -486,6 +487,9 @@ const Index = () => {
 
             {/* Home Tab - Reels Feed */}
             <TabsContent value="home" className="space-y-6">
+              {/* Stories Section */}
+              <StoryFeed />
+              
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-semibold">Community Reels</h2>
                 {user ? (
