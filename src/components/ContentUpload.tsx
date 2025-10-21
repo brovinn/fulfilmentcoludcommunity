@@ -121,7 +121,7 @@ export const ContentUpload = ({ tabType, onUploadSuccess }: ContentUploadProps) 
           </Avatar>
           <div>
             <CardTitle className="text-lg">
-              Create New {tabType === 'home' ? 'Reel' : 'Post'}
+              Create New {tabType === 'home' ? 'Reel' : tabType === 'story' ? 'Story' : 'Post'}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               Posting as {userProfile?.display_name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User'}
@@ -165,14 +165,19 @@ export const ContentUpload = ({ tabType, onUploadSuccess }: ContentUploadProps) 
 
           <div className="space-y-2">
             <Label htmlFor="file">
-              {tabType === 'home' ? 'Video/Image' : 'Image'} (Optional)
+              {tabType === 'home' ? 'Video/Image' : tabType === 'story' ? 'Image/Video' : 'Image'} (Optional)
             </Label>
             <Input
               id="file"
               type="file"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
-              accept={tabType === 'home' ? "image/*,video/*" : "image/*"}
+              accept={tabType === 'home' || tabType === 'story' ? "image/*,video/*" : "image/*"}
             />
+            {tabType === 'story' && (
+              <p className="text-xs text-muted-foreground">
+                Stories disappear after 24 hours
+              </p>
+            )}
           </div>
 
           {error && (
@@ -190,10 +195,15 @@ export const ContentUpload = ({ tabType, onUploadSuccess }: ContentUploadProps) 
             ) : (
               <>
                 <Upload className="mr-2 h-4 w-4" />
-                Upload {tabType === 'home' ? 'Reel' : 'Content'}
+                Upload {tabType === 'home' ? 'Reel' : tabType === 'story' ? 'Story' : 'Content'}
               </>
             )}
           </Button>
+          {tabType === 'story' && (
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              Your story will be visible for 24 hours
+            </p>
+          )}
         </form>
       </CardContent>
     </Card>

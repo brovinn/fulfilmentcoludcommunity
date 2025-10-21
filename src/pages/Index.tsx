@@ -511,6 +511,7 @@ const Index = () => {
                 )}
               </div>
               
+              
               {!user && (
                 <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
                   <CardContent className="pt-6">

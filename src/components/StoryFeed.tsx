@@ -2,14 +2,15 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Heart, Send, Clock, User } from "lucide-react";
+import { MessageCircle, Heart, Send, Clock, User, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { ContentUpload } from "./ContentUpload";
 
 interface StoryPost {
   id: string;
@@ -98,7 +99,7 @@ export const StoryFeed = () => {
 
   const loadStories = async () => {
     try {
-      // Get posts from last 24 hours
+      // Get posts from last 24 hours that are marked as stories
       const twentyFourHoursAgo = new Date();
       twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
@@ -107,6 +108,7 @@ export const StoryFeed = () => {
         .select('*')
         .gte('created_at', twentyFourHoursAgo.toISOString())
         .eq('status', 'active')
+        .eq('tab_type', 'story')
         .order('created_at', { ascending: false });
 
       if (contentError) throw contentError;
@@ -205,10 +207,25 @@ export const StoryFeed = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Clock className="h-5 w-5 text-muted-foreground" />
-        <h3 className="text-lg font-semibold">Stories (Last 24 Hours)</h3>
-        <Badge variant="secondary">{stories.length}</Badge>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Clock className="h-5 w-5 text-muted-foreground" />
+          <h3 className="text-lg font-semibold">Stories (Last 24 Hours)</h3>
+          <Badge variant="secondary">{stories.length}</Badge>
+        </div>
+        {user && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Story
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <ContentUpload tabType="story" onUploadSuccess={loadStories} />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Horizontal Story Scroll */}
