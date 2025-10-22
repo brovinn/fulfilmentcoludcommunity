@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -103,11 +103,11 @@ export const ContentUpload = ({ tabType, onUploadSuccess }: ContentUploadProps) 
 
   const [userProfile, setUserProfile] = useState<any>(null);
 
-  useState(() => {
+  useEffect(() => {
     if (user) {
       getUserProfile().then(setUserProfile);
     }
-  });
+  }, [user]);
 
   return (
     <Card>

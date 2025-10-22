@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Heart, Send, Clock, User, Plus } from "lucide-react";
+import { MessageCircle, Heart, Send, Clock, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { ContentUpload } from "./ContentUpload";
 
 interface StoryPost {
   id: string;
@@ -207,25 +206,12 @@ export const StoryFeed = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center mb-2">
         <div className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-muted-foreground" />
           <h3 className="text-lg font-semibold">Stories (Last 24 Hours)</h3>
           <Badge variant="secondary">{stories.length}</Badge>
         </div>
-        {user && (
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Story
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <ContentUpload tabType="story" onUploadSuccess={loadStories} />
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
 
       {/* Horizontal Story Scroll */}

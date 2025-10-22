@@ -21,7 +21,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Download, Heart, MessageCircle, Clock, Calendar, Users, Upload, Plus, MoreHorizontal, Globe } from "lucide-react";
+import { Download, Heart, MessageCircle, Clock, Calendar, Users, Upload, Plus, MoreHorizontal, Globe, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface ContentItem {
   id: string;
@@ -491,19 +492,39 @@ const Index = () => {
               <StoryFeed />
               
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-semibold">Community Reels</h2>
+                <h2 className="text-2xl font-semibold">Community Feed</h2>
                 {user ? (
-                  <Dialog>
-                    <DialogTrigger asChild>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
                       <Button>
                         <Plus className="mr-2 h-4 w-4" />
-                        Create Reel
+                        Post
+                        <ChevronDown className="ml-2 h-4 w-4" />
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <ContentUpload tabType="home" onUploadSuccess={loadContent} />
-                    </DialogContent>
-                  </Dialog>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            Post Reel
+                          </DropdownMenuItem>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                          <ContentUpload tabType="home" onUploadSuccess={loadContent} />
+                        </DialogContent>
+                      </Dialog>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            Post Story
+                          </DropdownMenuItem>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                          <ContentUpload tabType="story" onUploadSuccess={loadContent} />
+                        </DialogContent>
+                      </Dialog>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 ) : (
                   <Button onClick={() => setShowAuth(true)}>
                     Sign In to Create
