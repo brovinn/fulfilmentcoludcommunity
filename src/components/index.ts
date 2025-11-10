@@ -4,3 +4,4 @@ export { default as ReelsFeed } from './ReelsFeed';
 export { default as InternationalDonationForm } from './InternationalDonationForm';
 export { PaymentMethodSelector } from './PaymentMethodSelector';
 export { StoryFeed } from './StoryFeed';
+export { default as InstallPWA } from './InstallPWA';
