@@ -52,6 +52,10 @@ const Auth = () => {
       if (error) {
         if (error.message.includes("Invalid login credentials")) {
           setError("Invalid email or password. Please check your credentials and try again.");
+        } else if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError")) {
+          setError("Network error. Please check your internet connection and try again.");
+        } else if (error.message.includes("Email not confirmed")) {
+          setError("Please confirm your email address before signing in.");
         } else {
           setError(error.message);
         }
@@ -61,8 +65,13 @@ const Auth = () => {
       if (data.session) {
         navigate("/");
       }
-    } catch (err) {
-      setError("An unexpected error occurred. Please try again.");
+    } catch (err: any) {
+      // Handle network/fetch errors
+      if (err?.message?.includes("fetch") || err?.name === "TypeError") {
+        setError("Connection failed. Please check your internet connection and try again.");
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
