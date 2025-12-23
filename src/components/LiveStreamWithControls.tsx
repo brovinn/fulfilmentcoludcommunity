@@ -25,7 +25,8 @@ import {
   PhoneOff,
   RefreshCw,
   Camera,
-  SwitchCamera
+  SwitchCamera,
+  MessageCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -42,6 +43,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useViewerTracking } from "@/hooks/useViewerTracking";
+import LiveStreamChat from "./LiveStreamChat";
 
 interface LiveStreamWithControlsProps {
   sessionId?: string;
@@ -65,7 +68,6 @@ const LiveStreamWithControls = ({ sessionId, isHost = false, title = "Live Strea
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState([100]);
-  const [viewerCount, setViewerCount] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isPiPActive, setIsPiPActive] = useState(false);
@@ -73,6 +75,11 @@ const LiveStreamWithControls = ({ sessionId, isHost = false, title = "Live Strea
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>('');
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('');
   const [streamDuration, setStreamDuration] = useState(0);
+  const [showChat, setShowChat] = useState(true);
+  const [activeSessionId, setActiveSessionId] = useState<string>(sessionId || `stream_${Date.now()}`);
+
+  // Real-time viewer tracking
+  const { viewerCount } = useViewerTracking(streamStatus === 'live' || streamStatus === 'paused' ? activeSessionId : undefined);
 
   // Get available media devices
   useEffect(() => {
@@ -93,16 +100,6 @@ const LiveStreamWithControls = ({ sessionId, isHost = false, title = "Live Strea
     
     getDevices();
   }, []);
-
-  // Simulate viewer count
-  useEffect(() => {
-    if (streamStatus === 'live') {
-      const interval = setInterval(() => {
-        setViewerCount(prev => Math.max(0, prev + Math.floor(Math.random() * 10) - 3));
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [streamStatus]);
 
   // Stream duration timer
   useEffect(() => {
@@ -180,7 +177,7 @@ const LiveStreamWithControls = ({ sessionId, isHost = false, title = "Live Strea
     
     if (mediaStream) {
       setStreamStatus('live');
-      setViewerCount(Math.floor(Math.random() * 20) + 5);
+      setActiveSessionId(`stream_${Date.now()}`);
       setStreamDuration(0);
       
       toast({
@@ -199,7 +196,6 @@ const LiveStreamWithControls = ({ sessionId, isHost = false, title = "Live Strea
     }
     stopAllTracks();
     setStreamStatus('ended');
-    setViewerCount(0);
     
     toast({
       title: "Stream Ended",
