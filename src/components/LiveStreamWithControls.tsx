@@ -831,6 +831,165 @@ const LiveStreamWithControls = ({ sessionId, isHost = false, title = "Live Strea
               )}
             </div>
           )}
+
+          {/* Control Panel Form - Visible outside video */}
+          {isHost && (
+            <div className="border rounded-lg p-4 bg-muted/30 space-y-4">
+              <h3 className="font-semibold flex items-center gap-2 text-foreground">
+                <Settings className="h-4 w-4" />
+                Broadcast Controls
+              </h3>
+              
+              {/* Primary Actions */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {streamStatus === 'idle' && (
+                  <Button onClick={startStream} className="bg-green-600 hover:bg-green-700 col-span-2 sm:col-span-4">
+                    <Play className="h-4 w-4 mr-2" />
+                    Start Broadcasting
+                  </Button>
+                )}
+                
+                {streamStatus === 'live' && (
+                  <>
+                    <Button onClick={pauseStream} variant="outline" className="border-yellow-500 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-950">
+                      <Pause className="h-4 w-4 mr-2" />
+                      Pause
+                    </Button>
+                    <Button onClick={stopStream} variant="destructive">
+                      <Square className="h-4 w-4 mr-2" />
+                      End Stream
+                    </Button>
+                    <Button onClick={toggleVideo} variant={isVideoOn ? "secondary" : "destructive"}>
+                      {isVideoOn ? <Video className="h-4 w-4 mr-2" /> : <VideoOff className="h-4 w-4 mr-2" />}
+                      {isVideoOn ? "Video On" : "Video Off"}
+                    </Button>
+                    <Button onClick={toggleAudio} variant={isAudioOn ? "secondary" : "destructive"}>
+                      {isAudioOn ? <Mic className="h-4 w-4 mr-2" /> : <MicOff className="h-4 w-4 mr-2" />}
+                      {isAudioOn ? "Mic On" : "Mic Off"}
+                    </Button>
+                  </>
+                )}
+                
+                {streamStatus === 'paused' && (
+                  <>
+                    <Button onClick={resumeStream} className="bg-green-600 hover:bg-green-700 col-span-2">
+                      <Play className="h-4 w-4 mr-2" />
+                      Resume
+                    </Button>
+                    <Button onClick={endCall} variant="destructive" className="col-span-2">
+                      <PhoneOff className="h-4 w-4 mr-2" />
+                      End Stream
+                    </Button>
+                  </>
+                )}
+                
+                {streamStatus === 'ended' && (
+                  <Button 
+                    onClick={() => {
+                      setStreamStatus('idle');
+                      setStreamDuration(0);
+                    }} 
+                    className="bg-green-600 hover:bg-green-700 col-span-2 sm:col-span-4"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    New Stream
+                  </Button>
+                )}
+              </div>
+
+              {/* Secondary Controls */}
+              {(streamStatus === 'live' || streamStatus === 'paused') && (
+                <>
+                  <Separator />
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <Button 
+                      onClick={toggleScreenShare} 
+                      variant={isScreenSharing ? "default" : "outline"}
+                      disabled={streamStatus === 'paused'}
+                    >
+                      {isScreenSharing ? <MonitorOff className="h-4 w-4 mr-2" /> : <MonitorUp className="h-4 w-4 mr-2" />}
+                      {isScreenSharing ? "Stop Share" : "Share Screen"}
+                    </Button>
+                    <Button 
+                      onClick={isRecording ? stopRecording : startRecording} 
+                      variant={isRecording ? "destructive" : "outline"}
+                      disabled={streamStatus !== 'live'}
+                    >
+                      <Circle className={`h-4 w-4 mr-2 ${isRecording ? 'fill-current animate-pulse' : ''}`} />
+                      {isRecording ? `Stop (${formatTime(recordingTime)})` : "Record"}
+                    </Button>
+                    <Button onClick={togglePiP} variant={isPiPActive ? "default" : "outline"}>
+                      <PictureInPicture className="h-4 w-4 mr-2" />
+                      PiP
+                    </Button>
+                    <Button onClick={toggleFullscreen} variant="outline">
+                      {isFullscreen ? <Minimize className="h-4 w-4 mr-2" /> : <Maximize className="h-4 w-4 mr-2" />}
+                      {isFullscreen ? "Exit Full" : "Fullscreen"}
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {/* Device Selection */}
+              {streamStatus === 'idle' && (
+                <>
+                  <Separator />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium flex items-center gap-2 text-foreground">
+                        <Camera className="h-4 w-4" />
+                        Camera
+                      </label>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start">
+                            <SwitchCamera className="h-4 w-4 mr-2" />
+                            {videoDevices.find(d => d.deviceId === selectedVideoDevice)?.label || 'Select Camera'}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-64">
+                          {videoDevices.map((device) => (
+                            <DropdownMenuItem
+                              key={device.deviceId}
+                              onClick={() => setSelectedVideoDevice(device.deviceId)}
+                              className={selectedVideoDevice === device.deviceId ? 'bg-accent' : ''}
+                            >
+                              {device.label || `Camera ${videoDevices.indexOf(device) + 1}`}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium flex items-center gap-2 text-foreground">
+                        <Mic className="h-4 w-4" />
+                        Microphone
+                      </label>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start">
+                            <Mic className="h-4 w-4 mr-2" />
+                            {audioDevices.find(d => d.deviceId === selectedAudioDevice)?.label || 'Select Microphone'}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-64">
+                          {audioDevices.map((device) => (
+                            <DropdownMenuItem
+                              key={device.deviceId}
+                              onClick={() => setSelectedAudioDevice(device.deviceId)}
+                              className={selectedAudioDevice === device.deviceId ? 'bg-accent' : ''}
+                            >
+                              {device.label || `Microphone ${audioDevices.indexOf(device) + 1}`}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
