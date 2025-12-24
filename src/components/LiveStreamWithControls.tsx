@@ -26,7 +26,8 @@ import {
   RefreshCw,
   Camera,
   SwitchCamera,
-  MessageCircle
+  MessageCircle,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -443,36 +444,52 @@ const LiveStreamWithControls = ({ sessionId, isHost = false, title = "Live Strea
 
   return (
     <TooltipProvider>
-      <Card className="w-full">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Video className="h-5 w-5" />
-              {title}
-              <Badge className={`ml-2 ${getStatusColor()}`}>
-                {getStatusText()}
-              </Badge>
-              {isRecording && (
-                <Badge variant="destructive" className="ml-2 animate-pulse">
-                  <Circle className="h-2 w-2 mr-1 fill-current" />
-                  REC {formatTime(recordingTime)}
+      <div className="flex gap-4 w-full">
+        {/* Main Stream Card */}
+        <Card className={`flex-1 transition-all duration-300 ${showChat && isHost ? 'w-[calc(100%-360px)]' : 'w-full'}`}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Video className="h-5 w-5" />
+                {title}
+                <Badge className={`ml-2 ${getStatusColor()}`}>
+                  {getStatusText()}
                 </Badge>
-              )}
-            </CardTitle>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              {streamStatus === 'live' && (
-                <>
-                  <span className="font-mono">{formatTime(streamDuration)}</span>
-                  <Separator orientation="vertical" className="h-4" />
-                </>
-              )}
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                <span>{viewerCount}</span>
+                {isRecording && (
+                  <Badge variant="destructive" className="ml-2 animate-pulse">
+                    <Circle className="h-2 w-2 mr-1 fill-current" />
+                    REC {formatTime(recordingTime)}
+                  </Badge>
+                )}
+              </CardTitle>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                {streamStatus === 'live' && (
+                  <>
+                    <span className="font-mono">{formatTime(streamDuration)}</span>
+                    <Separator orientation="vertical" className="h-4" />
+                  </>
+                )}
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4" />
+                  <span>{viewerCount}</span>
+                </div>
+                {isHost && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant={showChat ? "default" : "outline"}
+                        onClick={() => setShowChat(!showChat)}
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{showChat ? 'Hide chat' : 'Show chat'}</TooltipContent>
+                  </Tooltip>
+                )}
               </div>
             </div>
-          </div>
-        </CardHeader>
+          </CardHeader>
         
         <CardContent className="space-y-4">
           {/* Video Display */}
@@ -816,6 +833,22 @@ const LiveStreamWithControls = ({ sessionId, isHost = false, title = "Live Strea
           )}
         </CardContent>
       </Card>
+
+      {/* Toggleable Chat Panel */}
+      {isHost && showChat && (streamStatus === 'live' || streamStatus === 'paused') && (
+        <div className="w-[340px] flex-shrink-0 relative animate-in slide-in-from-right duration-300">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="absolute -left-3 top-2 z-10 h-6 w-6 rounded-full bg-background border shadow-sm"
+            onClick={() => setShowChat(false)}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+          <LiveStreamChat sessionId={activeSessionId} isHost={isHost} />
+        </div>
+      )}
+      </div>
     </TooltipProvider>
   );
 };
