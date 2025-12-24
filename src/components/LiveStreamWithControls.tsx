@@ -993,8 +993,8 @@ const LiveStreamWithControls = ({ sessionId, isHost = false, title = "Live Strea
         </CardContent>
       </Card>
 
-      {/* Toggleable Chat Panel */}
-      {isHost && showChat && (streamStatus === 'live' || streamStatus === 'paused') && (
+      {/* Toggleable Chat Panel - Always visible for admin when toggled */}
+      {isHost && showChat && (
         <div className="w-[340px] flex-shrink-0 relative animate-in slide-in-from-right duration-300">
           <Button
             size="icon"
